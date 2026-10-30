@@ -96,6 +96,8 @@ export const updateLock = async (
         if (doc[j.key] !== j.expected) problems.push(`${j.file} now gives "${j.key}": ${JSON.stringify(doc[j.key])}, not "${j.expected}"`)
       }
       if (problems.length > 0) {
+        // The same fallback as every other refusal: the previous release's pin, never a pin only main names.
+        if (prev) Object.assign(s, pinFields(prev))
         notes.push(
           `${s.id}: licence check failed at ${commit} (${problems.join('; ')}). Kept the previous pin ${s.commit.slice(0, 12)}. ` +
             'Read the new licence, update CREDITS.md, then run update-lock with --accept-license-change (or update licenseJson.expected).',

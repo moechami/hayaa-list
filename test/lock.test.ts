@@ -154,6 +154,20 @@ describe('updateLock', () => {
     assert.equal(accepted.lock.sources[0].licenseSha256, sha('CC BY-NC text'))
   })
 
+  test('a failed licence check falls back to the previous release\'s pin, like every other refusal', async () => {
+    const files = { [rawUrl('o/a', C(4), 'list.txt')]: 'new list', [rawUrl('o/a', C(4), 'LICENSE')]: 'CC BY-NC text', [rawUrl('p/l', C(4), 'psl.dat')]: 'psl4' }
+    // main pins commit 3 (never released); the previous release pinned commit 1.
+    const current = baseLock([source('a', { commit: C(3), url: rawUrl('o/a', C(3), 'list.txt'), sha256: sha('three'), licenseSha256: sha('MIT text') })])
+    const fallback = baseLock([source('a')])
+    const n: LockNet = { ...net(files), latestCommit: async () => C(4) }
+    const r = await updateLock(current, n, { ...opts, fallback })
+    assert.equal(r.lock.sources[0].commit, C(1))
+    assert.equal(r.lock.sources[0].url, rawUrl('o/a', C(1), 'list.txt'))
+    assert.equal(r.lock.sources[0].sha256, fallback.sources[0].sha256)
+    assert.equal(r.lock.sources[0].licenseSha256, fallback.sources[0].licenseSha256)
+    assert.match(r.notes[0], /^a: licence check failed at 4{40} \(LICENSE changed\)\. Kept the previous pin 111111111111/)
+  })
+
   test('a licence field in a JSON file must keep its expected value (not overridable)', async () => {
     const s = source('sb', { licenseJson: { file: 'update.json', key: 'license', expected: 'MIT' } })
     const files = (lic: string): Record<string, string> => ({
