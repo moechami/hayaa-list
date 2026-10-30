@@ -61,6 +61,7 @@ export const baseInput = (): BuildInput => ({
     keywordFalseMatches: 'benign essex\nsexual porn\nsexual sex\nhost oddname.com  # not adult\n',
     pendingReview: '',
     reviewedEduGov: '',
+    ordinaryNames: 'ordinary golf\nordinary casino\nadult porn\nadult girl\n',
   },
   eduGov: { labels: ['edu', 'gov', 'ac', 'sch'], tlds: ['edu', 'gov'], extra: [], excluded: [] },
   psl: SYNTHETIC_PSL,

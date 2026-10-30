@@ -351,6 +351,16 @@ describe('reviewed decisions in data/', () => {
     assert.ok(lutheran.length >= 24, String(lutheran.length))
   })
 
+  test('the ordinary sites found in the random samples of the final list are allowlisted', () => {
+    const covered = (h: string): boolean => [...allow].some((a) => a.startsWith('*.') && (h === a.slice(2) || h.endsWith(a.slice(1))))
+    for (const h of [
+      'dikoross.ru', 'soulmate-finder.com', 'classicmovies.com', 'virgingaming.com', 'guancai365.com', 'minhatatuagem.com', 'cd-taxi.com',
+      'popmatters.com', 'maranathamedia-myanmar.com', 'victorinoxknives.com', 'bytelearn.com', 'a1tel.co.uk',
+    ]) {
+      assert.ok(covered(h), h)
+    }
+  })
+
   test('pp.ru pages are allowlisted, and the ordinary blogspot blogs the audit found', () => {
     assert.ok(allow.has('*.pp.ru'))
     for (const h of ['bestamazonshoes.blogspot.com', 'puntoinfinito.blogspot.com', 'adventuresincyberia.blogspot.com', 'gamesvideossaga.blogspot.com', 'thecmthrone.blogspot.com', 'pharmacysearch-all.blogspot.com']) {

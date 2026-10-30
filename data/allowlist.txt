@@ -633,3 +633,65 @@ adventuresincyberia.blogspot.com         # technology blog
 gamesvideossaga.blogspot.com             # video games blog
 thecmthrone.blogspot.com                 # personal blog
 pharmacysearch-all.blogspot.com          # pharmacy search
+
+# --- Ordinary sites from random samples of the final list (2026-10-30) ---
+# Read by name in three samples of 300; the ordinary-name rule
+# (data/ordinary-names.txt) removes most such names, these it does not.
+*.adult-only-hotels-mobi.sbs             # hotels for adults (no children)
+*.dikoross.ru                            # wild-harvest food products
+*.lignesncfintercitesparisclermontferrand.fr  # train line information
+*.amasyasacekimi.com                     # hair transplant clinic
+*.dvi-limoges.fr                         # business
+*.soulmate-finder.com                    # dating site, not explicit
+*.sweetmail.net                          # e-mail and e-cards
+*.abefastcash.com                        # loans
+*.hard-discount.com                      # discount retail
+*.arquitecturajaviercortes.es            # architecture firm
+*.yourfavoritehairstyles.tumblr.com      # hairstyles blog
+*.rwbyfangirl.tumblr.com                 # anime fan blog
+*.fuball-em2020.live                     # football streaming
+*.classicmovies.com                      # classic films
+*.virgingaming.com                       # video gaming
+*.creepypastafromthecrypt.blogspot.com   # horror stories blog
+*.guancai365.com                         # funeral supplies
+*.mezase-bokizeirishi.jp                 # bookkeeping and tax exam study
+*.manisamatematik.com                    # mathematics teaching
+*.demi-moore-diet.blogspot.com           # diet blog
+*.longxiangcapital.com                   # investment company
+*.insta-windows.ru                       # software installation
+*.sdxinganghulan.com                     # guardrail manufacturer
+*.minhatatuagem.com                      # tattoo designs
+*.dfwsportatorium.com                    # wrestling venue history
+*.protocolovendasexplosivas.shop         # sales course
+*.britishcomicsfreegifts.com             # comics collecting
+*.inventandoassunto.com                  # Portuguese blog
+*.cd-taxi.com                            # taxi company
+*.yunperfum.com                          # perfume shop
+*.usexpreso.com                          # Spanish "US Expreso", courier
+*.blackpaybackmaximlaw.com               # law firm
+*.compagniadellafortezza.org             # Italian theatre company
+*.amdcbuilt.com                          # builder
+*.popmatters.com                         # culture magazine
+*.khmaniacs.com                          # video game fan site
+*.wonosobokabupaten.my.id                # Indonesian regency information
+*.hostdrjack.com                         # web hosting
+*.blackfeministhistory.tumblr.com        # history blog
+*.newyearnewmesamenoob.tumblr.com        # personal blog
+*.123hobbits.tumblr.com                  # fan blog
+*.maranathamedia-myanmar.com             # Christian media
+*.ouraudi.com                            # car club
+*.balikesirliyiz.com                     # city community site
+*.victorinoxknives.com                   # knives
+*.lesbian-advice.tumblr.com              # advice blog, not explicit
+*.kaartspelletjes.be                     # Dutch card games
+*.bytelearn.com                          # education
+*.addfunny.com                           # humour
+*.1funny.com                             # humour
+*.berufskalender.de                      # German careers calendar
+*.a1tel.co.uk                            # telecoms
+*.kanal7-cdn.com                         # Turkish television network
+*.scrabbleicious.com                     # word game
+*.werdehotels.com                        # hotels
+*.cqhy-expo.com                          # exhibitions
+*.odindisticaret.com                     # Turkish foreign trade
+*.alanyasmmm.com                         # accountants

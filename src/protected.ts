@@ -241,3 +241,36 @@ export const isKeywordFalseMatch = (rules: KeywordRules, host: string): boolean 
   if (spansOf(rules.benign, host).length === 0) return false
   return keywordTokens(rules, host).every((t) => t.hidden)
 }
+
+// ---------------------------------------------------------------------------
+// 3. Ordinary names (data/ordinary-names.txt): a host whose name reads as an
+//    ordinary business, school, sport or gambling site, with no adult-looking
+//    word anywhere in it, is removed. See the data file for why.
+
+export type OrdinaryRules = { ordinary: RegExp; adult: RegExp }
+
+/** data/ordinary-names.txt → rules. Every pattern must compile and must not match "". */
+export const parseOrdinaryRules = (text: string): OrdinaryRules => {
+  const ordinary: string[] = []
+  const adult: string[] = []
+  for (const line of readDataLines(text)) {
+    const m = /^(ordinary|adult)\s+(\S+)$/.exec(line)
+    if (!m) throw new Error(`ordinary-names: "${line}" must be "ordinary <pattern>" or "adult <pattern>"`)
+    let re: RegExp
+    try {
+      re = new RegExp(m[2])
+    } catch {
+      throw new Error(`ordinary-names: "${m[2]}" is not a valid regular expression`)
+    }
+    if (re.test('')) throw new Error(`ordinary-names: "${m[2]}" matches the empty string`)
+    ;(m[1] === 'ordinary' ? ordinary : adult).push(m[2])
+  }
+  if (ordinary.length === 0 || adult.length === 0) throw new Error('ordinary-names: needs at least one ordinary and one adult pattern')
+  return { ordinary: new RegExp(ordinary.join('|')), adult: new RegExp(adult.join('|')) }
+}
+
+/** True when the name of `host` (labels except the public suffix) is ordinary and nothing in the host looks adult. */
+export const isOrdinaryName = (psl: PublicSuffixList, rules: OrdinaryRules, host: string): boolean => {
+  const name = nameLabels(psl, host).join('.')
+  return name !== '' && rules.ordinary.test(name) && !rules.adult.test(host)
+}

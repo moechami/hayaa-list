@@ -89,6 +89,7 @@ contains diocese
 contains jesus
 contains prayer not sprayer
 contains sermon
+contains maranatha     # Aramaic "Lord, come", a Christian name
 contains faith not unfaithful tylerfaith  # infidelity, and the performer name Tyler Faith
 
 # --- Judaism ---

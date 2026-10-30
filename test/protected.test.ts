@@ -198,7 +198,7 @@ describe('the committed data files', () => {
       'rehab', 'pornfreedom', 'integrity', 'stopitnow', 'pornkills', 'lutheran', 'baptist', 'methodist', 'evangelic', 'evangelho', 'catholic',
       'jewish', 'iglesia', 'chiesa', 'diocese', 'jesus', 'sermon', 'tauhid', 'tawhid', 'sunna', 'musulman', 'madrasa', 'madrassa', 'umrah',
       'umroh', 'hajj', 'hijrah', 'majlis', 'sexualhealth', 'sexualabuse', 'sexualassault', 'sexualharassment', 'scarleteen', 'plannedparenthood',
-      'helpline', 'gynec', 'gynaec', 'obgyn', 'urolog',
+      'helpline', 'gynec', 'gynaec', 'obgyn', 'urolog', 'maranatha',
     ]) {
       assert.ok(contains.has(t) || rules.some((r) => r.kind === 'contains' && r.term === t), t)
     }

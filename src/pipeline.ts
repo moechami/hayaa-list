@@ -7,7 +7,7 @@
 //
 //   parse each source (format gate) → union → add reviewed additions → drop
 //   bare public suffixes → protected-name gate → false keyword matches →
-//   allowlist → hold back education and government hosts → review gates on
+//   ordinary names → allowlist → hold back education and government hosts → review gates on
 //   popular sites (hold back new unreviewed entries) → drop hosts a listed
 //   parent already covers → shrink and growth
 //   gates → compile (format v2) → canaries and negatives → starter list →
@@ -44,7 +44,7 @@ import { BUILD_INFO, BUILD_INFO_VERSION, serializeBuildInfo, type BuildInfo, typ
 import { MAX_SKIPPED_RATIO, MIN_SKIPPED_LINES, MIN_SOURCE_RATIO, MIN_TOTAL_RATIO } from './config'
 import { sha256Hex } from './hash'
 import { eduGovSuffix } from './edugov'
-import { isKeywordFalseMatch, parseKeywordRules, parseProtectedTerms, parseReasonedHosts, protectedTermsOf } from './protected'
+import { isKeywordFalseMatch, isOrdinaryName, parseKeywordRules, parseOrdinaryRules, parseProtectedTerms, parseReasonedHosts, protectedTermsOf } from './protected'
 
 export { sha256Hex }
 
@@ -72,6 +72,8 @@ export type BuildInput = {
     pendingReview: string
     /** data/reviewed-edu-gov.txt: education or government hosts reviewed as adult. */
     reviewedEduGov: string
+    /** data/ordinary-names.txt: ordinary business, school, sport and gambling names. */
+    ordinaryNames: string
   }
   /** Education and government suffixes (config.ts EDU_GOV_*, src/edugov.ts). */
   eduGov: { labels: readonly string[]; tlds: readonly string[]; extra: readonly string[]; excluded: readonly string[] }
@@ -120,6 +122,7 @@ export type BuildReport = {
     publicSuffixesDropped: number
     protectedNamesRemoved: number
     keywordFalseMatchesRemoved: number
+    ordinaryNamesRemoved: number
     allowlisted: number
     finalHosts: number
     paths: number
@@ -159,6 +162,7 @@ export type BuildOutput = {
   /** Review aids (never published): what the two name rules removed. */
   removedProtected: { host: string; terms: string[] }[]
   removedKeywordFalseMatches: string[]
+  removedOrdinaryNames: string[]
 }
 
 /** A gate failed. `details` holds extra lines for a report file (never secrets). */
@@ -360,6 +364,7 @@ export const runBuild = (input: BuildInput): BuildOutput => {
   const protectedRules = asGate(() => parseProtectedTerms(input.data.protectedTerms))
   const reviewedProtected = asGate(() => parseReasonedHosts(input.data.reviewedProtected, 'reviewed-protected', normalizeDomainInput))
   const keywordRules = asGate(() => parseKeywordRules(input.data.keywordFalseMatches, normalizeDomainInput))
+  const ordinaryRules = asGate(() => parseOrdinaryRules(input.data.ordinaryNames))
   const pending = parseHostRules(input.data.pendingReview, 'pending-review')
   const reviewedEduGov = new Set(asGate(() => parseReasonedHosts(input.data.reviewedEduGov, 'reviewed-edu-gov', normalizeDomainInput)).keys())
   const eduGovRules = {
@@ -426,6 +431,20 @@ export const runBuild = (input: BuildInput): BuildOutput => {
   for (const h of keywordRules.hosts) {
     if (byOtherMethod.has(h)) warnings.push(`keyword-false-matches: "${h}" is also listed by another source, so this rule does not remove it; allowlist it instead`)
   }
+
+  // 3d. Ordinary names (any source): an ordinary business, school, sport or
+  //     gambling name with no adult-looking word is removed, unless a person
+  //     reviewed it as adult.
+  const reviewedTopSet = new Set(reviewed)
+  const personReviewed = (h: string): boolean =>
+    additionSet.has(h) || coveredBy(reviewedTopSet, h) || ruleCovers(reviewedSub, h) || coveredBy(reviewedProtectedSet, h)
+  const removedOrdinary: string[] = []
+  for (const h of [...union]) {
+    if (personReviewed(h) || !isOrdinaryName(psl, ordinaryRules, h)) continue
+    union.delete(h)
+    removedOrdinary.push(h)
+  }
+  removedOrdinary.sort()
 
   // 4. Allowlist (before the dedupe, see the top of this file).
   const afterSubtree = applyAllowlist(union, allow.subtree)
@@ -667,6 +686,7 @@ export const runBuild = (input: BuildInput): BuildOutput => {
     topSiteSubdomainEntries: reviewAid,
     removedProtected,
     removedKeywordFalseMatches: removedKeyword,
+    removedOrdinaryNames: removedOrdinary,
     report: {
       serial: input.serial,
       previous: input.previous?.origin ?? null,
@@ -677,6 +697,7 @@ export const runBuild = (input: BuildInput): BuildOutput => {
         publicSuffixesDropped,
         protectedNamesRemoved: removedProtected.length,
         keywordFalseMatchesRemoved: removedKeyword.length,
+        ordinaryNamesRemoved: removedOrdinary.length,
         allowlisted: allowlistedCount,
         finalHosts: header.hostCount,
         paths: full.stats.paths,

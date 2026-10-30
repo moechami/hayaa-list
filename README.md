@@ -61,7 +61,8 @@ apart from reviewed mistakes.
 3. Add the reviewed entries in `data/additions.txt`.
 4. Drop any entry that is a bare public suffix (`co.uk`, `blogspot.com`),
    using the pinned Public Suffix List.
-5. Apply the **protected-name gate** and remove **false keyword matches**
+5. Apply the **protected-name gate**, remove **false keyword matches** and
+   **ordinary names**, and hold back **education and government hosts**
    (below).
 6. Remove allowlisted hosts (`data/allowlist.txt`).
 7. Apply the review gates (below), holding back new unreviewed popular
@@ -108,6 +109,18 @@ inside a non-sexual or safe word ("sussextiles": the "sext" starts inside
 "sussex"; "sussexphotobooth": the "hot" is inside "photo"). Safe words only
 hide short tokens such as "hot", "cam", "ass" and "tit"; they never make a
 host removable on their own.
+
+### Ordinary names
+
+Every source lists some ordinary sites: expired domains, sites that once
+carried an adult advert, and names a list caught by mistake. A host whose
+name reads as an ordinary business, school, sport or gambling site (golf,
+academy, software, bank, casino, steel, newspaper and similar, in several
+languages) and has no adult-looking word anywhere in it is **removed**.
+The words are data, in `data/ordinary-names.txt`; the adult-looking list is
+deliberately broad ("hot", "girl", "video", "chat", "18"), so one such word
+keeps a host listed. Hosts a person reviewed as adult are never removed by
+this rule.
 
 ### Education and government hosts
 

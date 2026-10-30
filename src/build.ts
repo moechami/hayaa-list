@@ -133,6 +133,7 @@ const main = async (): Promise<void> => {
         keywordFalseMatches: readData('keyword-false-matches.txt'),
         pendingReview: readData('pending-review.txt'),
         reviewedEduGov: readData('reviewed-edu-gov.txt'),
+        ordinaryNames: readData('ordinary-names.txt'),
       },
       eduGov: { labels: EDU_GOV_LABELS, tlds: EDU_GOV_TLDS, extra: EDU_GOV_EXTRA_SUFFIXES, excluded: EDU_GOV_EXCLUDED_SUFFIXES },
       psl,
@@ -192,6 +193,7 @@ const main = async (): Promise<void> => {
   writeFileSync(join(out, 'removed-protected.txt'), lines(result.removedProtected.map((r) => `${r.host} ${r.terms.join(',')}`)))
   writeFileSync(join(out, 'removed-keyword-false-matches.txt'), lines(result.removedKeywordFalseMatches))
   writeFileSync(join(out, 'held-back-edu-gov.txt'), lines(result.heldBackEduGov))
+  writeFileSync(join(out, 'removed-ordinary-names.txt'), lines(result.removedOrdinaryNames))
 
   console.log(JSON.stringify(result.report, null, 2))
   // Sorted: the public log must not reveal the popularity order.

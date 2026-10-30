@@ -50,7 +50,7 @@ benign gasexchange             # gas exchange
 # (a name starting "sexpert" is left alone), and not where the "ex-" word is
 # itself sexual ("exhibitionist", "exposed", "explicit", "extreme"). The word
 # covers only the "sex", so a token after it ("phonesextranny") is not hidden.
-benign (?<=[a-z])sex(?=press|pert|plor|plain|peri|pedi|po(?!s)|port|cel|chang|clusiv|pan|hibit(?!ionis)|ecut|am|tern|tend|tens|tra|cava|curs|cus|empt|empl|ercis|it(?![eya])|pens|pect|ceed|haust|termin)
+benign (?<=[a-z])sex(?=press|pert|plor|plain|peri|pedi|po(?!s)|port|cel|chang|clusiv|pan|hibit(?!ionis)|ecut|am|tern|tend|tens|tra|cava|curs|cus|empt|empl|ercis|it(?![eya])|pens|pect|ceed|haust|termin|plos|preso)
 benign unisex                  # unisex salons and clothing
 benign sextant                 # navigation instrument
 benign s?lutheran              # "gs lutheran": the "slut" is in "s" + "lutheran"
