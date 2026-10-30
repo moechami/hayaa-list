@@ -1,9 +1,16 @@
 name: Monthly release
 
-# Builds the Hayaa List from the latest commit of every source, runs every
-# gate and test, then (in the protected `release` environment) signs the
-# manifest and publishes a GitHub release. Any failure publishes nothing and
-# opens an issue.
+# Attempts a release of the Hayaa List every month. It compares against the
+# previous release (the latest GitHub release), re-pins every source that is
+# not frozen to its latest commit, builds, runs every gate and test, then (in
+# the protected `release` environment, from main only) signs the manifest
+# with OpenSSL and publishes a GitHub release.
+#
+# Fail-safe: a new, unreviewed popular entry is held back and the release
+# still ships; a source that disappeared or changed its licence keeps its
+# previous pin; an issue lists everything that needs a person. Nothing is
+# published when a gate fails (for example more than 25 new held-back
+# entries, or a list that shrank by more than 10%); an issue says so.
 
 on:
   schedule:
@@ -14,6 +21,11 @@ on:
         description: 'Run number of the day (the NN in the serial YYYYMMDDNN), 1 to 99'
         required: false
         default: '1'
+      allow_shrink:
+        description: 'Skip the shrink gates (only after a reviewed removal of a source)'
+        required: false
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -29,8 +41,10 @@ jobs:
       contents: read
     outputs:
       serial: ${{ steps.serial.outputs.serial }}
+      review: ${{ steps.review.outputs.count }}
     env:
       HAYAA_LIST_RUN: ${{ inputs.run || '1' }}
+      HAYAA_LIST_ALLOW_SHRINK: ${{ inputs.allow_shrink && '1' || '0' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -43,10 +57,17 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts
 
-      - name: Re-pin every source to its latest commit
+      - name: Fetch the previous release (an empty folder when there is none; an API error fails)
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: npm run update-lock
+        run: npm run fetch-previous -- --repo "$GITHUB_REPOSITORY" --out previous
+
+      - name: Re-pin every source that is not frozen (a vanished or relicensed source keeps its previous pin)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p notes
+          npm run update-lock -- --fallback-lock previous/sources.lock.json --notes notes/lock.txt
 
       - name: Type check and tests
         run: |
@@ -54,13 +75,13 @@ jobs:
           npm test
 
       - name: Build (runs every gate)
-        run: npm run build
+        run: npm run build -- --previous previous
 
       - name: Reproducibility (a second build must give identical bytes)
         run: |
-          npm run build -- --out dist-repro > /dev/null
+          npm run build -- --out dist-repro --previous previous > /dev/null
           serial=$(node -p "require('./dist/manifest.json').serial")
-          for f in "hayaa-list-$serial.bin" "hayaa-list-$serial.bin.gz" "hayaa-list-$serial.txt" starter.bin manifest.json; do
+          for f in "hayaa-list-$serial.bin" "hayaa-list-$serial.bin.gz" "hayaa-list-$serial.txt" starter.bin manifest.json build-info.json; do
             cmp "dist/$f" "dist-repro/$f"
           done
           sha256sum dist/*
@@ -69,18 +90,32 @@ jobs:
         name: Read the serial
         run: echo "serial=$(node -p "require('./dist/manifest.json').serial")" >> "$GITHUB_OUTPUT"
 
+      - id: review
+        name: Collect what needs a person (held-back entries, lock notes)
+        run: |
+          cp dist/held-back.txt notes/held-back.txt
+          count=$(cat notes/held-back.txt notes/lock.txt | grep -c . || true)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
       - name: Stage the release files
         env:
           SERIAL: ${{ steps.serial.outputs.serial }}
         run: |
           mkdir release
-          cp "dist/hayaa-list-$SERIAL.bin.gz" "dist/hayaa-list-$SERIAL.txt" dist/starter.bin dist/manifest.json release/
-          cp sources.lock.json release/
+          cp "dist/hayaa-list-$SERIAL.bin.gz" "dist/hayaa-list-$SERIAL.txt" dist/starter.bin dist/manifest.json dist/build-info.json release/
+          cp sources.lock.json LICENSE CREDITS.md release/
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release
           path: release/
+          if-no-files-found: error
+          retention-days: 30
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: notes
+          path: notes/
           if-no-files-found: error
           retention-days: 30
 
@@ -91,12 +126,17 @@ jobs:
           name: build-failure
           path: |
             dist/
+            notes/
             sources.lock.json
           if-no-files-found: ignore
           retention-days: 30
 
   release:
     needs: build
+    # Only ever from main, and only through the protected environment (see
+    # "Repository setup" in README.md: deployments limited to main, a
+    # required reviewer, the signing key as an environment secret).
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: release
@@ -108,6 +148,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -121,46 +162,109 @@ jobs:
           name: release
           path: release
 
-      - name: The serial must be newer than the latest release
+      - name: The serial must be newer than every release (no release yet passes; an API error fails)
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          case "$SERIAL" in ([0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) ;; (*) echo "bad serial $SERIAL"; exit 1 ;; esac
-          latest=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2>/dev/null || true)
-          if [ -n "$latest" ] && [ "$SERIAL" -le "${latest#v}" ]; then
-            echo "serial $SERIAL is not newer than the latest release $latest"
-            exit 1
-          fi
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run check-serial -- --repo "$GITHUB_REPOSITORY" --serial "$SERIAL"
 
-      - name: Sign the manifest
+      - name: Sign the manifest with OpenSSL (the key goes from the environment straight to OpenSSL, never to disk)
+        shell: bash
         env:
           LIST_SIGNING_KEY: ${{ secrets.LIST_SIGNING_KEY }}
-        run: npm run sign -- --dir release
-
-      - name: Verify every check the app runs
-        run: npm run verify -- --dir release
+        run: |
+          set +x
+          if [ -z "$LIST_SIGNING_KEY" ]; then echo "LIST_SIGNING_KEY is not set in the release environment"; exit 1; fi
+          openssl dgst -sha256 -sign <(printf '%s\n' "$LIST_SIGNING_KEY") -out release/manifest.json.sig release/manifest.json
+          unset LIST_SIGNING_KEY
 
       - name: Verify the signature with OpenSSL
         run: |
           key_id=$(node -p "require('./release/manifest.json').keyId")
           openssl dgst -sha256 -verify "keys/$key_id.pub.pem" -signature release/manifest.json.sig release/manifest.json
 
+      - name: Verify every check the app runs (Node verifier)
+        run: npm run verify -- --dir release
+
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          held=$(node -p "const b=require('./release/build-info.json').heldBack; b.topSites.length + b.topSiteSubdomains.length")
           gh release create "v$SERIAL" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "Hayaa List $SERIAL" \
-            --notes "Monthly build. Built from the sources.lock.json attached here; see CREDITS.md for sources and licences and docs/FORMAT.md for the file formats." \
+            --notes "Monthly build. Built from the sources.lock.json attached here. The list data is licensed under the GNU GPL version 3 only (LICENSE); sources and attributions are in CREDITS.md, file formats in docs/FORMAT.md. Entries held back for review: $held (see build-info.json)." \
             --latest \
             "release/hayaa-list-$SERIAL.bin.gz" \
             "release/hayaa-list-$SERIAL.txt" \
             release/starter.bin \
             release/manifest.json \
             release/manifest.json.sig \
-            release/sources.lock.json
+            release/build-info.json \
+            release/sources.lock.json \
+            release/LICENSE \
+            release/CREDITS.md
+
+      - name: Record the release's inputs on main (also keeps scheduled workflows enabled)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth setup-git
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git checkout -B record origin/main
+            cp release/sources.lock.json sources.lock.json
+            git add sources.lock.json
+            if git diff --cached --quiet; then
+              git commit --allow-empty -m "Record release v$SERIAL (inputs unchanged)"
+            else
+              git commit -m "Record the inputs of release v$SERIAL"
+            fi
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt * 10))
+          done
+          echo "could not push the lock to main; the release is published, but the keep-alive commit is missing"
+          exit 1
+
+  report-review:
+    needs: [build, release]
+    if: needs.release.result == 'success' && needs.build.outputs.review != '0'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: notes
+          path: notes
+
+      - name: Open an issue listing what needs review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SERIAL: ${{ needs.build.outputs.serial }}
+        run: |
+          {
+            echo "Release v$SERIAL was published. These items need a person:"
+            echo
+            if [ -s notes/held-back.txt ]; then
+              echo "### Held back (not in this release until reviewed)"
+              echo
+              echo "Review each into data/reviewed-top-hits.txt, data/reviewed-top-site-subdomains.txt or data/allowlist.txt."
+              echo
+              sed 's/^/- /' notes/held-back.txt
+              echo
+            fi
+            if [ -s notes/lock.txt ]; then
+              echo "### Sources kept at their previous pin"
+              echo
+              cat notes/lock.txt
+            fi
+          } > body.md
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "Release v$SERIAL: items to review" --body-file body.md
 
   report-failure:
     needs: [build, release]
@@ -178,6 +282,6 @@ jobs:
           gh issue create \
             --repo "$GITHUB_REPOSITORY" \
             --title "Monthly release failed ($(date -u +%Y-%m-%d))" \
-            --body "The monthly build or release failed and nothing was published. Run: $RUN_URL
+            --body "The monthly build or release failed. Unless the log shows the release step finished, nothing was published. Run: $RUN_URL
 
-          If a gate failed on unreviewed top sites, the build-failure artifact holds top-hits-candidates.txt: review each one into data/reviewed-top-hits.txt or data/allowlist.txt, then run the workflow again by hand."
+          If more than 25 new popular entries appeared, the build-failure artifact holds held-back-candidates.txt: review each into data/reviewed-top-hits.txt, data/reviewed-top-site-subdomains.txt or data/allowlist.txt, then run the workflow again by hand. If a shrink gate failed, find out why the list or a source lost hosts before re-running with allow_shrink."

@@ -7,6 +7,12 @@
  * <dir>/manifest.json.sig: a DER ECDSA signature over SHA-256 of the exact
  * bytes of <dir>/manifest.json. The same result as
  *   openssl dgst -sha256 -sign key.pem -out manifest.json.sig manifest.json
+ *
+ * FOR LOCAL USE ONLY (a trial release with a throwaway key). The release
+ * workflow does not use this script: it signs with OpenSSL, reading the key
+ * from the environment through process substitution so it never touches the
+ * disk, then verifies with both OpenSSL and the Node verifier. Never put the
+ * production key in a file or a shell history to run this.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -14,6 +20,7 @@ import { join, resolve } from 'node:path'
 import { signManifest } from '../src/signing'
 
 const main = (): void => {
+  console.warn('warning: local signing only; releases are signed by the workflow with OpenSSL (see keys/README.md)')
   const i = process.argv.indexOf('--dir')
   const dir = resolve(i >= 0 ? (process.argv[i + 1] ?? '') : join(__dirname, '..', 'dist'))
   const pem = process.env.LIST_SIGNING_KEY

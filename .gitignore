@@ -7,3 +7,8 @@ dist-*/
 *.pem
 !keys/*.pub.pem
 *.key
+
+# Monthly job working folders
+previous/
+notes/
+release/

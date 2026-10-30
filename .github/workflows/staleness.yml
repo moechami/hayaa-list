@@ -1,0 +1,59 @@
+name: Release staleness check
+
+# Weekly: opens an issue when the latest release is more than 35 days old
+# (the monthly job failed, waited unapproved, or stopped running), and asks
+# GitHub to keep both scheduled workflows enabled.
+#
+# GitHub disables scheduled workflows in a public repository after 60 days
+# without repository activity. The main keep-alive is the commit the release
+# job makes to main every month; re-enabling the workflows here through the
+# API is a second line of defence for months when no release is made.
+
+on:
+  schedule:
+    - cron: '41 6 * * 1'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      issues: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MAX_AGE_DAYS: 35
+    steps:
+      - name: Keep the scheduled workflows enabled
+        run: |
+          gh workflow enable monthly.yml --repo "$GITHUB_REPOSITORY"
+          gh workflow enable staleness.yml --repo "$GITHUB_REPOSITORY"
+
+      - name: Open an issue if the latest release is too old
+        run: |
+          set -euo pipefail
+          if ! latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" 2>&1); then
+            if grep -q 'HTTP 404' <<<"$latest"; then
+              echo "No release yet; nothing to check."
+              exit 0
+            fi
+            echo "$latest"
+            exit 1
+          fi
+          tag=$(jq -r .tag_name <<<"$latest")
+          published=$(jq -r .published_at <<<"$latest")
+          age=$(( ( $(date -u +%s) - $(date -u -d "$published" +%s) ) / 86400 ))
+          echo "Latest release $tag was published $age days ago."
+          if [ "$age" -le "$MAX_AGE_DAYS" ]; then exit 0; fi
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search 'in:title "No release for"' --json number --jq length)
+          if [ "$open" != "0" ]; then
+            echo "An issue is already open."
+            exit 0
+          fi
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title "No release for $age days (latest $tag)" \
+            --body "The latest release, $tag, is $age days old; a release is attempted every month. Check the Monthly release workflow: a failed run, a run waiting for approval in the release environment, or a disabled schedule (Actions tab, Monthly release, Enable workflow)."
