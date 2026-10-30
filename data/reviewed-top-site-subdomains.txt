@@ -1,0 +1,138 @@
+# Reviewed subdomains of the most popular sites.
+#
+# The build checks every listed host whose registrable domain is in the top
+# 1,000 of the pinned top-sites list (Tranco; see CREDITS.md), such as
+# m.vk.com under vk.com. The site itself stays reachable, but one wrong entry
+# here would still break it for many people. Each such host must be covered
+# by a line here, or the build holds it back (leaves it out of the release
+# and opens an issue). A host the previous release already listed stays
+# listed while it waits.
+#
+# Two forms:
+#   sub.example.com    this host was reviewed and is adult
+#   *.example.com      every listed subdomain of example.com is accepted:
+#                      used only for platforms where each subdomain is a
+#                      separate person's site (blogs, creator pages, CDN
+#                      customer zones), so a wrong entry blocks one small
+#                      site, never the platform. Each was sampled by hand.
+#
+# Wrong entries go to data/allowlist.txt (the host only) with a reason.
+
+# --- Platforms of independent sites (sampled 2026-10-30) ---
+*.tumblr.com          # blogs; random sample of 40 was 38 explicit by name
+*.free.fr             # personal pages of the Free ISP; sample of 40 was explicit or adult directories
+*.itch.io             # creator pages; sample of 40 was adult game creators
+*.wordpress.com       # blogs; all 174 read by name, 2 wrong ones allowlisted
+*.b-cdn.net           # BunnyCDN customer zones of adult sites; all 154 read by name
+*.livejournal.com     # blogs; all 75 read by name
+*.weebly.com          # sites; all 32 read by name, 2 wrong ones allowlisted
+*.deviantart.com      # artist galleries; all read, the shared file servers allowlisted
+*.medium.com          # blogs; all 9 read, 1 wrong one allowlisted
+*.disqus.com          # comment forums of adult sites; all 10 read
+*.wix.com             # sites; all 3 read
+*.squarespace.com     # sites; both read
+*.cdn.ampproject.org  # AMP caches of adult tube sites; all 14 read
+*.mybluehost.me       # customer sites; all 4 read, 1 wrong one allowlisted
+
+# --- Single hosts (reviewed 2026-10-30) ---
+# Sex-toy makers' storefronts on Alibaba (each blocks one store)
+adultproducts.en.alibaba.com
+adulttoys.en.alibaba.com
+aisi-cn.en.alibaba.com
+beileqing.en.alibaba.com
+beloves.en.alibaba.com
+bestcotec.en.alibaba.com
+e-star-sz.en.alibaba.com
+enovart.en.alibaba.com
+everybodyloving.en.alibaba.com
+everycom.en.alibaba.com
+faak.en.alibaba.com
+fairyland888.en.alibaba.com
+fantacytoys.en.alibaba.com
+fantasy-tech.en.alibaba.com
+foxlove.en.alibaba.com
+ginkgotoys.en.alibaba.com
+gzaite.en.alibaba.com
+haslove.en.alibaba.com
+hebeiaisin.en.alibaba.com
+hismith.en.alibaba.com
+huawentoys.en.alibaba.com
+jnruning.en.alibaba.com
+jxmengyi.en.alibaba.com
+leten.en.alibaba.com
+longshengsextoys.en.alibaba.com
+magiclove.en.alibaba.com
+nbyammy.en.alibaba.com
+nbzhengcheng.en.alibaba.com
+nezend.en.alibaba.com
+sac.en.alibaba.com
+sihande.en.alibaba.com
+slmhk.en.alibaba.com
+style-vibes.en.alibaba.com
+sunuplifestyle.en.alibaba.com
+szaizhiyin.en.alibaba.com
+szchiyuan.en.alibaba.com
+szpleasure.en.alibaba.com
+vwin69.en.alibaba.com
+wanyihealth.en.alibaba.com
+wellwanted.en.alibaba.com
+wiseu.en.alibaba.com
+xisetoys.en.alibaba.com
+yecho.en.alibaba.com
+yijisextoy.en.alibaba.com
+
+# Adult sections, help desks and servers of adult sites, adult blogs
+185-149-90-88.f623e89698ea44bc85b8c51142f9a5b8.plex.direct
+21sextury.zendesk.com
+87-98-190-210.ovh.net
+adoraveispecadoras.blog.uol.com.br
+adult.dl.rakuten.co.jp
+adultlinks.vilabol.uol.com.br
+adulto.globo.com
+amadorassex.uol.com.br
+banbaranban1958.spaces.msn.com
+brasileirinhashd.uol.com.br
+cumsluts.reddit.com
+dirtygaming.reddit.com
+disksexototal.sites.uol.com.br
+disponivel.uol.com.br
+emer3.sites.uol.com.br
+emmaaustin.substack.com
+entregabdsmblancherj.sites.uol.com.br
+erotyczne-wspomnienia.blog.onet.pl
+flagrasnapraia.uol.com.br
+friko.onet.pl
+friko1.onet.pl
+friko3.onet.pl
+friko4.onet.pl
+friko5.onet.pl
+fullporn.quora.com
+garotasdavan.uol.com.br
+garotasvirtuais.sites.uol.com.br
+honeyis.blog.uol.com.br
+houseofgirls.fotoblog.uol.com.br
+meninasdevassas.fotoblog.uol.com.br
+nienasycona-sexem.blog.onet.pl
+ns3180.ovh.net
+ns34110.ovh.net
+ns38263.ovh.net
+nsfw.reddit.com
+ohpornosex.blog.onet.pl
+pornhubhelp.zendesk.com
+pornolex.sites.uol.com.br
+priv.onet.pl
+priv6.onet.pl
+priv7.onet.pl
+pussy.reddit.com
+querofotosamador.sites.uol.com.br
+sereias.uol.com.br
+sexo.uol.com.br
+sexoamador.uol.com.br
+sexsites.uol.com.br
+sexy.onet.pl
+sexyclube.uol.com.br
+sexyhot.globo.com
+sunporno.zendesk.com
+vps123029.ovh.net
+yumedream.netangels.ru
+zacharyzane.substack.com

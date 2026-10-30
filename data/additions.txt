@@ -10,3 +10,14 @@
 #
 # A bare public suffix ("co.uk", "blogspot.com") or an allowlisted host fails
 # the build.
+
+# Adult sites that only the app's earlier bundled list had (audit of
+# 2026-10-30). The Block List Project (now a source) still lists all seven,
+# so these lines are a safeguard should that source ever be dropped.
+adultfuns.club          # live sex chat
+gays-cruising.com       # hook-up listings
+garotocomlocal.com.br   # escort listings
+erotikchat4free.org     # sex chat
+hentaivietsub.com       # explicit animation
+gaym.com                # hook-up service
+pcmax.jp                # hook-up (deai) service

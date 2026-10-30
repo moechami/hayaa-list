@@ -1,9 +1,10 @@
 # Reviewed top-site hits: popular sites the Hayaa List blocks on purpose.
 #
 # The build checks every domain in the pinned top-sites list (Tranco, top
-# 10,000; see CREDITS.md). Each one the list would block must be named here,
-# or the build fails and writes the unreviewed ones to
-# dist/top-hits-candidates.txt. A person then reviews each candidate:
+# 10,000; see CREDITS.md). Each one the list would block must be named here.
+# An unreviewed one stays listed if the previous release listed it; a new one
+# is held back (left out of the release, written to dist/held-back.txt and
+# listed in an issue) until reviewed. A person then reviews each candidate:
 #   - a genuinely adult site is added here;
 #   - a wrong entry goes to data/allowlist.txt instead, with a reason.
 #
@@ -14,7 +15,8 @@
 # shops, mainstream dating, general manga readers, general art and creator
 # platforms) are not, and are allowlisted.
 #
-# Judgement calls in this review (2026-10-30), kept here and open to reports:
+# Judgement calls in this review (2026-10-30; the borderline ones confirmed
+# by the maintainer the same day), kept here and open to reports:
 #   4chan.org            kept: explicit boards are a large, unfiltered part
 #   donmai.us, gelbooru.com, e621.net, paheal.net, rule34.*  kept: image
 #                        boards that show explicit images by default
@@ -27,7 +29,10 @@
 #   seaart.ai, pixai.art kept: image sites dominated by explicit images
 #   fantia.jp, dlsite.com, toomics.com  kept: mostly adult (R18) catalogues
 #   questionablequesting.com  kept: the forum exists for explicit fiction
-#   forogore.net         kept: graphic violence, listed as NSFW by two sources
+#   Allowed instead (data/allowlist.txt): character.ai, furaffinity.net,
+#   boosty.to, tango.me, fc2.com (root only; video.fc2.com stays listed),
+#   mangago.me, manhwaweb.com. forogore.net is gore, not sexual, so it is out
+#   of scope and allowlisted.
 #   Domains with no public page (ad, CDN and redirect hosts) were kept when a
 #   source lists them as adult and their name servers or names tie them to
 #   adult services (for example mjedge.net on an adult hosting provider).
@@ -50,6 +55,7 @@ absoluporn.com
 abxxx.com
 adam4adam.com
 adamieva.info
+adultfuns.club
 adultwork.com
 ahacdn.me
 ahcdn.com
@@ -64,6 +70,7 @@ antarvasna3.com
 anybunny.org
 anysex.com
 apornvideo.com
+arab-xnxx.com
 arabic-porn-tube.com
 arabsex1.com
 arabshentai.com
@@ -72,20 +79,19 @@ arabx.cam
 arabx88.mobi
 arabxn.com
 arabxn.sex
-arab-xnxx.com
 arbada.com
 arbnaar.com
 aryion.com
 ashemaletube.com
 assoass.com
 auntmia.com
+av-th.io
 av19t.com
 avdbs.com
 avizoone.com
 avjb.com
 avkuy.com
 avple.tv
-av-th.io
 avtub.net
 avtub.wiki
 aznude.com
@@ -154,19 +160,20 @@ doujin-freee.cc
 doujin-lc.net
 dropmms.com
 dto.jp
+e-hentai.org
 e621.net
 egysex6.com
-e-hentai.org
 elitebabes.com
 emochi.com
 eporner.com
+ero-video.net
 erome.com
 eronity.com
 eroprofile.com
 eropuru.com
 eroterest.net
 erothots1.com
-ero-video.net
+erotikchat4free.org
 escort.club
 escortbabylon.net
 escortsandbabes.com.au
@@ -186,7 +193,6 @@ fikfap.com
 filmexxx.live
 flirtify.com
 flixcdn.com
-forogore.net
 fpo.xxx
 freeporno.xxx
 freepornvideo.sex
@@ -201,8 +207,11 @@ fullhindisex.com
 fullxh.com
 fuq.com
 garotacomlocal.com
+garotocomlocal.com.br
+gaym.com
 gaymaletube.com
 gayporntube.com
+gays-cruising.com
 gekso.org
 gelbooru.com
 gemidos.tv
@@ -227,15 +236,16 @@ hentaila.com
 hentaila.tv
 hentaimama.io
 hentairead.com
+hentaivietsub.com
 hentaivox.com
 heovl.im
 highwebmedia.com
 hitomi.la
 hornyleak.tv
+hot-sex-tube.com
 hotebonytube.com
 hotpic.cc
 hotpornphotos.com
-hot-sex-tube.com
 hotxv.com
 hqporn.xxx
 hqporner.com
@@ -325,8 +335,8 @@ missav.live
 missav.ws
 missav123.com
 mjedge.net
-mmcdn.com
 mm-cg.com
+mmcdn.com
 momon-ga.com
 momoniji.com
 momvids.com
@@ -365,6 +375,7 @@ onlyfans.com
 oolveris.com
 paheal.net
 pawchive.pw
+pcmax.jp
 perfectgirls.xxx
 phimsexsuong3x.net
 phncdn.com
@@ -375,14 +386,15 @@ pixhost.to
 playvids.com
 polybuzz.ai
 poringa.net
-porn300.com
 porn-comic.com
+porn300.com
 porndos.com
 porngameshub.com
 pornhat.com
 pornhat.one
 pornhub.com
 pornhub.org
+porno-zona.com
 porno666.fo
 pornoborshch.com
 pornobrasil.com
@@ -394,7 +406,6 @@ pornolab.net
 pornolandia.xxx
 pornone.com
 pornoxo.com
-porno-zona.com
 pornpics.com
 pornpics.de
 porntrex.com
@@ -431,6 +442,9 @@ seaart.ai
 seks.ws
 semprot.com
 serviporno.com
+sex-studentki.live
+sex-studentki.studio
+sex-studentki.team
 sex.com
 sex6x.com
 sexalarab.com
@@ -442,9 +456,6 @@ sexkomix22.com
 sexlog.com
 sexmupxinh.net
 sexnyk.com
-sex-studentki.live
-sex-studentki.studio
-sex-studentki.team
 sextb.net
 sexvid.pro
 sexvid.xxx
@@ -527,6 +538,9 @@ wav.tv
 wnacg.com
 wonporn.com
 wowxxx.to
+x-fetish.tube
+x-video.tube
+x-x-x.tube
 xahani.com
 xalabahia.com
 xanimu.com
@@ -534,7 +548,6 @@ xasiat.com
 xcadr.online
 xdate.ch
 xfeed.com
-x-fetish.tube
 xfree.com
 xgroovy.com
 xhaccess.com
@@ -566,46 +579,45 @@ xhwebsite.com
 xhwide.com
 xhzone.live
 xleche.com
+xn----ztbcbceder.net
 xn--18-3qi3cza3b2a2dxc4b9a.com
 xn--42cf7cgd7gxbd4m7c.cc
 xn--72caa3cygoc0d9c.com
+xn--mgbkt9eckr.net
 xnalgas.com
 xnhau.city
-xn--mgbkt9eckr.net
 xnxtt.com
+xnxx-arabic.com
+xnxx-cdn.com
+xnxx-ru.com
 xnxx.com
 xnxx.es
 xnxx.health
 xnxx.tv
 xnxx2.com
-xnxx-arabic.com
-xnxx-cdn.com
 xnxxporn.video
-xnxx-ru.com
 xnxxvideos.me
-xn----ztbcbceder.net
 xorgasmo.com
 xossipy.com
 xpaja.net
-x-video.tube
-xvideo.vlog.br
+xv-ru.com
 xvideo-jp.com
+xvideo.vlog.br
+xvideos-ar.com
+xvideos-cdn.com
 xvideos.com
 xvideos.es
 xvideos2.com
 xvideos3.com
 xvideos4.com
-xvideos-ar.com
 xvideosbr.blog
-xvideos-cdn.com
 xvideosincesto.com
 xvideosporno.blog.br
 xvideosputaria.com
-xv-ru.com
 xvv1deos.com
 xxbrits.com
+xxx-sex.one
 xxx.com
-x-x-x.tube
 xxx18hot.com
 xxxbp.tv
 xxxbule.com
@@ -613,7 +625,6 @@ xxxhindi.to
 xxxindianstories.com
 xxxmovies.life
 xxxpostpic.org
-xxx-sex.one
 xxxshame.com
 xxxtophd.com
 xxxvideo.link

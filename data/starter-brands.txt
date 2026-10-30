@@ -1,0 +1,15 @@
+# Brands of starter-list candidates whose names do not show their brand.
+#
+# The starter list takes at most two domains per brand, so it covers as many
+# different sites as possible. A brand is normally read from the name
+# ("xhamster2.com" and "xhamster.desi" are both xhamster); this file names
+# the brand of mirrors and sister sites the name alone does not reveal.
+#
+# Format: "<registrable domain> <brand>", one per line.
+xhaccess.com   xhamster   # mirror of xhamster.com
+xham.live      xhamster   # xhamster's live cams
+xhspot.com     xhamster   # mirror of xhamster.com
+xhopen.com     xhamster   # mirror of xhamster.com
+xhsocial.com   xhamster   # mirror of xhamster.com
+xhname.com     xhamster   # mirror of xhamster.com
+exhentai.org   e-hentai   # sister site of e-hentai.org

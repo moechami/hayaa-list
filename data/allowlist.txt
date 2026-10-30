@@ -9,8 +9,10 @@
 #                   Used for infrastructure that phones, browsers and the
 #                   Hayaa app depend on.
 #
-# Every entry says why it is here. False positives found by the top-sites
-# review are added here too (see data/reviewed-top-hits.txt).
+# Every entry says why it is here. False positives found by the review gates
+# are added here too (see data/reviewed-top-hits.txt and
+# data/reviewed-top-site-subdomains.txt). Every negative (data/negatives.txt)
+# must be covered here, or the build fails.
 
 # --- Infrastructure (the host and everything under it) ---
 *.hayaa.io            # the Hayaa app and website
@@ -32,6 +34,21 @@
 *.cloudflare.com      # network infrastructure used by many sites
 *.microsoft.com       # system services, accounts
 *.wikipedia.org       # reference site; articles on any subject
+
+# --- The negatives' domains (data/negatives.txt), with everything under them ---
+# A negative must never match, so its whole domain is kept off the list.
+# reddit.com and x.com are root-only below instead: page-level entries for
+# their adult communities are planned, and a subtree rule forbids those.
+*.youtube.com         # video site, a negative
+*.facebook.com        # social network, a negative
+*.instagram.com       # social network, a negative
+*.whatsapp.com        # messaging, a negative
+*.amazon.com          # shop, a negative
+*.bing.com            # search, a negative
+*.duckduckgo.com      # search, a negative
+*.linkedin.com        # professional network, a negative
+*.quran.com           # Quran reference, a negative
+*.sunnah.com          # hadith reference, a negative
 
 # --- Platforms with user-published content (the root only) ---
 # Listed subdomains on these stay blocked; the platform itself must not be.
@@ -85,3 +102,101 @@ tango.me              # mainstream live streaming app
 weebcentral.com       # general manga reader
 yandex.by             # Yandex search (Belarus)
 yanmaga.jp            # Young Magazine, publisher's official manga site
+51.la                 # web analytics service
+beboo.ru              # mainstream dating site
+camscanner.com        # document scanner app
+canalblog.com         # blog platform; listed blogs keep their own entries
+cosmopolitan.com      # lifestyle magazine
+elmaz.com             # mainstream dating site
+fanfox.net            # general manga reader
+funnyjunk.com         # humour site, adult section is opt-in
+hotornot.com          # mainstream dating app
+like-video.com        # Likee, mainstream short video app
+opensea.io            # NFT marketplace
+papy.co.jp            # general e-book and manga store
+super.cz              # Czech celebrity news site
+tubidy.cool           # music and video download site
+videa.hu              # Hungarian mainstream video site
+xiaohongshu.com       # mainstream social network
+
+# --- Founder decisions on borderline sites (2026-10-30) ---
+gaymuslims.com.au     # support community, not adult
+forogore.net          # gore, not sexual: outside this list's scope (like the excluded snuff list)
+bicaramuslim.com      # not verified adult; Islamic-named, reviewed by hand before re-adding
+czechmuslims.com      # not verified adult; Islamic-named, reviewed by hand before re-adding
+halalaschool.com      # not verified adult; Islamic-named, reviewed by hand before re-adding
+halalmovies.com       # not verified adult; Islamic-named, reviewed by hand before re-adding
+
+# --- False positives under popular sites (the subdomain review, that host only) ---
+# Found by the review of listed subdomains of the top 1,000 sites (see
+# data/reviewed-top-site-subdomains.txt).
+m.vk.com              # VK mobile site
+my.mail.ru            # Mail.ru social pages
+articulo.mercadolibre.com.co  # Mercado Libre product pages
+blogs.icrc.org        # Red Cross blogs
+en.academic.ru        # encyclopedia and dictionary site
+medicine.academic.ru  # encyclopedia and dictionary site
+feedback.miui.com     # Xiaomi support forum
+yunqi.qq.com          # Tencent novel reading site
+olhares.sapo.pt       # photography community
+blog-imgs-63.fc2.com  # FC2 blog image server, shared by all FC2 blogs
+video-preview.s3.yandex.net  # Yandex video previews, shared by all of Yandex Video
+gs.yandex.com.tr      # Yandex Turkey service host
+paparazzo.globo.com   # Globo celebrity news
+p.badoo.com           # Badoo mainstream dating
+rating.kinopoisk.ru   # film ratings
+policies.tinder.com   # Tinder policy pages
+support.afrointroductions.com  # dating site help pages
+lutherandifference.libsyn.com  # podcast (religion)
+elevatedrecovery.libsyn.com    # podcast (addiction recovery)
+brainsciencepodcast.libsyn.com # podcast (neuroscience)
+skepticzone.libsyn.com         # podcast (science)
+100.naver.com         # Naver encyclopedia
+dir.naver.com         # Naver web directory
+67de5edb740e.0b0eae4e.ca-central-1.token.awswaf.com  # AWS WAF challenge host of an unknown site; infrastructure
+67de5edb740e.edge.sdk.awswaf.com  # AWS WAF challenge host of an unknown site; infrastructure
+jt9p7.x.incapdns.net  # Imperva CDN host of an unknown site; infrastructure
+adscontent.indiatimes.com  # Times of India content host
+aloha.my.salesforce.com    # Salesforce service host
+beacon.my.salesforce.com   # Salesforce service host
+lifestyle.uk.msn.com  # MSN lifestyle news
+love.msn.com          # MSN relationships section
+womencentral.msn.com  # MSN women's section
+teens.aol.com         # AOL teens section
+boards.dailymail.co.uk  # newspaper forum
+dating.telegraph.co.uk  # newspaper's mainstream dating service
+carnaval.globo.com    # Globo carnival news
+carnaval2006.globo.com  # Globo carnival news
+catcohen.substack.com # comedian's newsletter
+garbageday.substack.com  # internet culture newsletter
+overthinkersguidetosex.substack.com  # sex education newsletter, not explicit
+futuremethod.medium.com  # general writing
+objects.reddit.com    # Reddit service host
+sisterwives.fandom.com  # TV series wiki
+thenewsroom.fandom.com  # TV series wiki
+fc05.deviantart.com   # DeviantArt file server, shared by all users
+fc16.deviantart.com   # DeviantArt file server, shared by all users
+fc22.deviantart.com   # DeviantArt file server, shared by all users
+fc42.deviantart.com   # DeviantArt file server, shared by all users
+fc46.deviantart.com   # DeviantArt file server, shared by all users
+fc64.deviantart.com   # DeviantArt file server, shared by all users
+fc90.deviantart.com   # DeviantArt file server, shared by all users
+high-school-musical-love.blog.onet.pl  # film fan blog
+gnaughty.sourceforge.net  # software project page
+pornview.sourceforge.net  # image viewer software project page
+hot.browser.miui.com  # Xiaomi browser news feed
+image.search.yahoo.com  # Yahoo image search
+love.mail.ru          # Mail.ru mainstream dating
+odkazy.seznam.cz      # Seznam web directory
+sexualities.sagepub.com  # academic journal
+lavandariasexpresso-pt.sjb.cmk.mybluehost.me  # laundry business site
+fistfuck.bandcamp.com      # music page on Bandcamp
+girlsarelusty.bandcamp.com # music page on Bandcamp
+lesbovrouven.bandcamp.com  # music page on Bandcamp
+sexworksounds.bandcamp.com # music page on Bandcamp
+tips4empireavenue.wordpress.com  # social media tips blog
+lagourmandehiphop.wordpress.com  # music and food blog
+diaperbankofnm.weebly.com  # charity
+virginmobileringtones.weebly.com  # ringtones site
+smashbroscentral.tumblr.com  # video game fan blog
+bar.love.mail.ru      # Mail.ru mainstream dating
