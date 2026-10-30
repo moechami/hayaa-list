@@ -80,6 +80,22 @@ export const MAX_NEW_REGISTRABLE_DOMAINS = 50_000
 export const KEYWORD_MATCHED_SOURCES: readonly string[] = ['blocklistproject-porn']
 
 /**
+ * BLP_STRICT (prepared, OFF). The Block List Project matched words inside
+ * names, so many hosts only it lists have ordinary names. When true, a host
+ * that ONLY a keyword-matched source lists is kept only if its name has a
+ * strong explicit term ("strong" lines in data/keyword-false-matches.txt:
+ * porn, xxx, sex outside an ordinary word, hentai, nude, nsfw, milf, fuck,
+ * pussy, dick, cock, tits, boob, escort, erotic, camgirl, xvideo, xhamster,
+ * onlyfans, jav, webcam or adult together with sex, porn or video); every
+ * other such host is held back (counted in build-info.json, listed in
+ * dist/held-back-blp-strict.txt). Hosts a person reviewed as adult stay.
+ * Switching it on removes a large share of the list at once: the release
+ * that does so needs allow_shrink, and MIN_HOST_FLOOR must be lowered
+ * first (see the README for the measured effect).
+ */
+export const BLP_STRICT = false
+
+/**
  * A source whose unreadable lines exceed 1% of its non-comment lines (and at
  * least MIN_SKIPPED_LINES of them) has changed format: every current source
  * stays under 0.03% (a handful of malformed or over-long lines), while a

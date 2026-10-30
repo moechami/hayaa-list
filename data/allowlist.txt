@@ -695,3 +695,28 @@ pharmacysearch-all.blogspot.com          # pharmacy search
 *.cqhy-expo.com                          # exhibitions
 *.odindisticaret.com                     # Turkish foreign trade
 *.alanyasmmm.com                         # accountants
+*.leavingcerthistory.net                 # school history revision
+*.mygentledog.com                        # dog care
+*.cheeserland.com                        # food blog
+*.trimm-dich.de                          # fitness campaign
+*.vocationalco.com                       # vocational training
+*.hongtudrying.com                       # drying equipment maker
+*.chashanhuaxuechang.com                 # chemical plant
+*.morapsikoloji.com                      # psychology practice
+*.meme-generator.de                      # meme generator
+*.cleanfooddirtygirlreviews.com          # food reviews
+*.mortalinstrumentsinfernaldevices.tumblr.com  # book fan blog
+*.pogodasporok.tk                        # weather
+*.germanliquids.com                      # e-liquid shop
+*.pot-seeds.blogspot.com                 # seeds blog
+*.bsqxfood.com                           # food company
+*.hydestrategicadvisory.online           # advisory firm
+*.zhichunwater.com                       # water company
+*.hihenglish.com                         # English lessons
+*.sofas4me.com                           # furniture
+*.zlstainless.com                        # stainless steel
+*.iowabev.blogspot.com                   # beverages blog
+*.mmofiles.com                           # online games
+*.ebenezereny.net                        # church
+*.antiporno.net                          # anti-pornography site
+*.antiporno.org                          # anti-pornography site

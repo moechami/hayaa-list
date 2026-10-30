@@ -52,12 +52,14 @@ contains pornfree with becoming living marriage masculinity shame journey recove
 contains integrity      # sexual integrity, seeking integrity
 contains stopitnow
 contains pornkills
+contains antiporn not tantiporn  # anti-pornography; not Italian "tanti porno"
 
 # --- Sexual health, abuse and assault support ---
 contains sexualhealth   # also "sexual-health" (hyphens are ignored)
 contains sexualabuse
 contains sexualassault
 contains sexualharassment
+contains sexolog       # sexology, sexologist, sexologue: sex therapy and education
 contains scarleteen
 contains plannedparenthood
 contains hotline with abuse assault rape violence crisis suicide survivor
@@ -90,6 +92,7 @@ contains jesus
 contains prayer not sprayer
 contains sermon
 contains maranatha     # Aramaic "Lord, come", a Christian name
+contains ebenezer      # a common church name
 contains faith not unfaithful tylerfaith  # infidelity, and the performer name Tyler Faith
 
 # --- Judaism ---

@@ -259,3 +259,41 @@ host xxaasextou.com                   # betting site ("sextou", Brazilian "it is
 host xxggsextou.com                   # betting site ("sextou", Brazilian "it is Friday")
 host xxvipsextou.com                  # betting site ("sextou", Brazilian "it is Friday")
 host zzxxsextou.com                   # betting site ("sextou", Brazilian "it is Friday")
+
+# --- Strong explicit terms (used only when config.ts BLP_STRICT is on) ---
+# With BLP_STRICT, a host only this source lists is kept only when one of
+# these names it, by the same rule as above: a term that starts inside a
+# benign or safe word does not count ("sussextiles", "petits", "cocktail").
+safe cocktail
+safe cockpit
+safe cockroach
+safe cocker
+safe peacock
+safe hancock
+safe babcock
+safe dickens
+safe dickinson
+strong porn
+strong xxx
+strong sex
+strong hentai
+strong nude
+strong nsfw
+strong milf
+strong fuck
+strong pussy
+strong dick
+strong cock
+strong tits
+strong boob
+strong escort
+strong erotic
+strong camgirl
+strong webcam(?=.*(?:sex|porn))
+strong xvideo
+strong xhamster
+strong onlyfan
+strong fansly
+strong jav(?![aie])
+strong adult(?=.*(?:video|xxx))
+strong video(?=.*adult)

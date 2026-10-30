@@ -44,7 +44,7 @@ import { BUILD_INFO, BUILD_INFO_VERSION, serializeBuildInfo, type BuildInfo, typ
 import { MAX_SKIPPED_RATIO, MIN_SKIPPED_LINES, MIN_SOURCE_RATIO, MIN_TOTAL_RATIO } from './config'
 import { sha256Hex } from './hash'
 import { eduGovSuffix } from './edugov'
-import { isKeywordFalseMatch, isOrdinaryName, parseKeywordRules, parseOrdinaryRules, parseProtectedTerms, parseReasonedHosts, protectedTermsOf } from './protected'
+import { hasStrongTerm, isKeywordFalseMatch, isOrdinaryName, parseKeywordRules, parseOrdinaryRules, parseProtectedTerms, parseReasonedHosts, protectedTermsOf } from './protected'
 
 export { sha256Hex }
 
@@ -110,6 +110,8 @@ export type BuildInput = {
   maxNewRegistrableDomains: number
   /** SHA-256 of the sources.lock.json the build read, recorded in the signed build-info.json. */
   sourcesLockSha256: string
+  /** config.ts BLP_STRICT: keep hosts only keyword-matched sources list only when a strong explicit term names them. */
+  blpStrict: boolean
 }
 
 export type BuildReport = {
@@ -134,6 +136,7 @@ export type BuildReport = {
     heldBackTopSites: number
     heldBackTopSiteSubdomains: number
     heldBackEduGov: number
+    heldBackBlpStrict: number
     newHeldBack: number
     topSiteSubdomainEntries: number
   }
@@ -153,6 +156,8 @@ export type BuildOutput = {
   heldBack: { topSites: string[]; topSiteSubdomains: string[] }
   /** Education and government hosts left out until reviewed (data/reviewed-edu-gov.txt). */
   heldBackEduGov: string[]
+  /** With blpStrict: hosts only a keyword-matched source lists, without a strong explicit term (a review aid; only the count is recorded). */
+  heldBackBlpStrict: string[]
   /** Held-back entries that are neither in data/pending-review.txt nor held back by the previous release. */
   newHeldBack: string[]
   /** Unreviewed entries kept only because the previous release listed them. */
@@ -462,6 +467,20 @@ export const runBuild = (input: BuildInput): BuildOutput => {
     else listed.add(h)
   }
   heldEduGov.sort()
+
+  // 4c. BLP_STRICT (off by default): a host only a keyword-matched source
+  //     lists is kept only when a strong explicit term names it (porn, xxx,
+  //     sex outside an ordinary word, hentai, nude, escort, ...); the rest
+  //     are held back. Hosts a person reviewed as adult always stay.
+  const heldBlpStrict: string[] = []
+  if (input.blpStrict) {
+    for (const h of [...listed]) {
+      if (byOtherMethod.has(h) || personReviewed(h) || hasStrongTerm(keywordRules, h)) continue
+      listed.delete(h)
+      heldBlpStrict.push(h)
+    }
+    heldBlpStrict.sort()
+  }
   for (const h of reviewedEduGov) if (eduGovSuffix(psl, eduGovRules, h) === null) warnings.push(`reviewed-edu-gov: "${h}" is not under an education or government suffix`)
 
   // 5. Review gate, top sites: every popular site the list blocks must have been reviewed.
@@ -656,6 +675,8 @@ export const runBuild = (input: BuildInput): BuildOutput => {
     sources: perSource,
     heldBack,
     heldBackEduGov: heldEduGov,
+    blpStrict: input.blpStrict,
+    heldBackBlpStrict: heldBlpStrict.length,
     gateOverrides: { allowShrink: input.allowShrink, allowGrowth: input.allowGrowth },
     sourcesLockSha256: input.sourcesLockSha256,
   }
@@ -681,6 +702,7 @@ export const runBuild = (input: BuildInput): BuildOutput => {
     starter,
     heldBack,
     heldBackEduGov: heldEduGov,
+    heldBackBlpStrict: heldBlpStrict,
     newHeldBack: newHeld,
     keptFromPrevious: [...keptTop, ...keptSub].sort(),
     topSiteSubdomainEntries: reviewAid,
@@ -709,6 +731,7 @@ export const runBuild = (input: BuildInput): BuildOutput => {
         heldBackTopSites: heldTop.length,
         heldBackTopSiteSubdomains: heldSub.length,
         heldBackEduGov: heldEduGov.length,
+        heldBackBlpStrict: heldBlpStrict.length,
         newHeldBack: newHeld.length,
         topSiteSubdomainEntries: reviewAid.length,
       },

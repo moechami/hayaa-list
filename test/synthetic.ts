@@ -83,4 +83,5 @@ export const baseInput = (): BuildInput => ({
   maxSourceGrowth: 0.3,
   maxNewRegistrableDomains: 50_000,
   sourcesLockSha256: SYNTHETIC_LOCK_SHA256,
+  blpStrict: false,
 })

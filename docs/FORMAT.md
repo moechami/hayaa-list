@@ -228,7 +228,9 @@ held-back entries from ones already waiting for review. `hostCountHistory`
 holds the host counts of up to the last six releases, oldest first, this
 one last; the slow-shrink gate compares with its largest value.
 `heldBackEduGov` lists the education and government hosts left out until
-reviewed (`data/reviewed-edu-gov.txt`). `gateOverrides` records whether the shrink or growth gates were skipped
+reviewed (`data/reviewed-edu-gov.txt`); `blpStrict` and
+`heldBackBlpStrict` record whether `BLP_STRICT` was on and how many hosts it
+held back. `gateOverrides` records whether the shrink or growth gates were skipped
 (the workflow inputs `allow_shrink` and `allow_growth`), and
 `sourcesLockSha256` the SHA-256 of the `sources.lock.json` the release was
 built from.
@@ -245,6 +247,8 @@ built from.
   ],
   "heldBack": { "topSites": [], "topSiteSubdomains": [] },
   "heldBackEduGov": ["xxx.lanl.gov"],
+  "blpStrict": false,
+  "heldBackBlpStrict": 0,
   "gateOverrides": { "allowShrink": false, "allowGrowth": false },
   "sourcesLockSha256": "<64 hex>"
 }

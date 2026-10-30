@@ -30,6 +30,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import {
+  BLP_STRICT,
   DEFAULT_KEY_ID,
   EDU_GOV_EXCLUDED_SUFFIXES,
   EDU_GOV_EXTRA_SUFFIXES,
@@ -155,6 +156,7 @@ const main = async (): Promise<void> => {
       maxSourceGrowth: MAX_SOURCE_GROWTH,
       maxNewRegistrableDomains: MAX_NEW_REGISTRABLE_DOMAINS,
       sourcesLockSha256,
+      blpStrict: BLP_STRICT,
     })
   } catch (e) {
     if (e instanceof GateError) {
@@ -194,6 +196,7 @@ const main = async (): Promise<void> => {
   writeFileSync(join(out, 'removed-keyword-false-matches.txt'), lines(result.removedKeywordFalseMatches))
   writeFileSync(join(out, 'held-back-edu-gov.txt'), lines(result.heldBackEduGov))
   writeFileSync(join(out, 'removed-ordinary-names.txt'), lines(result.removedOrdinaryNames))
+  writeFileSync(join(out, 'held-back-blp-strict.txt'), lines(result.heldBackBlpStrict))
 
   console.log(JSON.stringify(result.report, null, 2))
   // Sorted: the public log must not reveal the popularity order.

@@ -140,6 +140,8 @@ export type KeywordRules = {
   /** Every sexual-looking pattern as one sticky alternation, and each on its own (sticky). */
   sexual: RegExp
   sexualEach: RegExp[]
+  /** Strong explicit terms (config.ts BLP_STRICT), each sticky. */
+  strong: RegExp[]
   hosts: Set<string>
 }
 
@@ -148,6 +150,7 @@ export const parseKeywordRules = (text: string, normalize: (h: string) => string
   const benign: RegExp[] = []
   const safe: RegExp[] = []
   const sexual: string[] = []
+  const strong: RegExp[] = []
   const hosts = new Set<string>()
   for (const line of readDataLines(text)) {
     const space = line.search(/\s/)
@@ -159,7 +162,7 @@ export const parseKeywordRules = (text: string, normalize: (h: string) => string
       hosts.add(value)
       continue
     }
-    if (kind !== 'benign' && kind !== 'safe' && kind !== 'sexual') throw new Error(`keyword-false-matches: unknown kind "${kind}"`)
+    if (kind !== 'benign' && kind !== 'safe' && kind !== 'sexual' && kind !== 'strong') throw new Error(`keyword-false-matches: unknown kind "${kind}"`)
     let re: RegExp
     try {
       re = new RegExp(value, 'g')
@@ -169,10 +172,11 @@ export const parseKeywordRules = (text: string, normalize: (h: string) => string
     if (re.test('')) throw new Error(`keyword-false-matches: "${value}" matches the empty string`)
     if (kind === 'benign') benign.push(re)
     else if (kind === 'safe') safe.push(re)
+    else if (kind === 'strong') strong.push(new RegExp(value, 'y'))
     else sexual.push(value)
   }
   if (benign.length === 0 || sexual.length === 0) throw new Error('keyword-false-matches: needs at least one benign and one sexual pattern')
-  return { benign, safe, sexual: new RegExp(sexual.join('|'), 'y'), sexualEach: sexual.map((s) => new RegExp(s, 'y')), hosts }
+  return { benign, safe, sexual: new RegExp(sexual.join('|'), 'y'), sexualEach: sexual.map((s) => new RegExp(s, 'y')), strong, hosts }
 }
 
 /** Every [start, end) where one of `patterns` matches in `host`. */
@@ -194,6 +198,20 @@ const matchesAt = (re: RegExp, host: string, i: number): RegExpExecArray | null 
 }
 
 /**
+ * For each position of `host`, where the run of letters covered by benign
+ * and safe words (adjacent words joined: "atlas" + "sexpo") that covers it
+ * ends; -1 when no word covers it.
+ */
+const wordReach = (rules: KeywordRules, host: string): number[] => {
+  const spans = [...spansOf(rules.benign, host), ...spansOf(rules.safe, host)]
+  const covered = new Array<boolean>(host.length + 1).fill(false)
+  for (const [a, b] of spans) for (let i = a; i < b; i++) covered[i] = true
+  const reach = new Array<number>(host.length + 1).fill(-1)
+  for (let i = host.length - 1; i >= 0; i--) if (covered[i]) reach[i] = covered[i + 1] ? reach[i + 1] : i + 1
+  return reach
+}
+
+/**
  * The sexual-looking tokens of `host`, each at the position it starts, and
  * whether a safe word hides it. A token is hidden when it starts inside a
  * benign or safe word ("sussex" hides the "sext" of "sussextiles", "photo"
@@ -205,13 +223,7 @@ const matchesAt = (re: RegExp, host: string, i: number): RegExpExecArray | null 
  * one: the "ass" of "atlassexpo" lies inside "atlas" + "sexpo").
  */
 export const keywordTokens = (rules: KeywordRules, host: string): { start: number; token: string; hidden: boolean }[] => {
-  const spans = [...spansOf(rules.benign, host), ...spansOf(rules.safe, host)]
-  // For each position, where the run of letters covered by words (adjacent
-  // words joined: "atlas" + "sexpo") that starts there ends; -1 when none.
-  const covered = new Array<boolean>(host.length + 1).fill(false)
-  for (const [a, b] of spans) for (let i = a; i < b; i++) covered[i] = true
-  const reach = new Array<number>(host.length + 1).fill(-1)
-  for (let i = host.length - 1; i >= 0; i--) if (covered[i]) reach[i] = covered[i + 1] ? reach[i + 1] : i + 1
+  const reach = wordReach(rules, host)
   const out: { start: number; token: string; hidden: boolean }[] = []
   for (let i = 0; i < host.length; i++) {
     const end = reach[i]
@@ -273,4 +285,27 @@ export const parseOrdinaryRules = (text: string): OrdinaryRules => {
 export const isOrdinaryName = (psl: PublicSuffixList, rules: OrdinaryRules, host: string): boolean => {
   const name = nameLabels(psl, host).join('.')
   return name !== '' && rules.ordinary.test(name) && !rules.adult.test(host)
+}
+
+/**
+ * True when `host` contains a strong explicit term ("strong" lines: porn,
+ * xxx, sex, hentai, nude, fuck, escort and similar) that is not hidden by a
+ * benign or safe word, by the same rule as keywordTokens: the "sex" of
+ * "sussextiles" or the "tits" of "petits" does not count. Used by
+ * config.ts BLP_STRICT.
+ */
+export const hasStrongTerm = (rules: KeywordRules, host: string): boolean => {
+  if (rules.strong.length === 0) return false
+  const reach = wordReach(rules, host)
+  for (let i = 0; i < host.length; i++) {
+    for (const re of rules.strong) {
+      re.lastIndex = i
+      const m = re.exec(host)
+      if (m === null) continue
+      const end = reach[i]
+      const inside = end < 0 ? 0 : Math.min(end, i + m[0].length) - i
+      if (inside < Math.min(3, m[0].length)) return true
+    }
+  }
+  return false
 }

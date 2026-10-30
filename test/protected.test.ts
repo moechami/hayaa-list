@@ -13,6 +13,7 @@ import { normalizeDomainInput } from '../src/domains'
 import { decodeHayaaList } from '../src/format'
 import { GateError, runBuild, type BuildInput } from '../src/pipeline'
 import {
+  hasStrongTerm,
   isKeywordFalseMatch,
   keywordTokens,
   nameLabels,
@@ -21,6 +22,8 @@ import {
   parseReasonedHosts,
   protectedTermsOf,
 } from '../src/protected'
+import { BLP_STRICT } from '../src/config'
+import { parseBuildInfo } from '../src/previous'
 import { parsePsl } from '../src/psl'
 import { SYNTHETIC_PSL, baseInput } from './synthetic'
 
@@ -198,7 +201,7 @@ describe('the committed data files', () => {
       'rehab', 'pornfreedom', 'integrity', 'stopitnow', 'pornkills', 'lutheran', 'baptist', 'methodist', 'evangelic', 'evangelho', 'catholic',
       'jewish', 'iglesia', 'chiesa', 'diocese', 'jesus', 'sermon', 'tauhid', 'tawhid', 'sunna', 'musulman', 'madrasa', 'madrassa', 'umrah',
       'umroh', 'hajj', 'hijrah', 'majlis', 'sexualhealth', 'sexualabuse', 'sexualassault', 'sexualharassment', 'scarleteen', 'plannedparenthood',
-      'helpline', 'gynec', 'gynaec', 'obgyn', 'urolog', 'maranatha',
+      'helpline', 'gynec', 'gynaec', 'obgyn', 'urolog', 'maranatha', 'antiporn', 'sexolog', 'ebenezer',
     ]) {
       assert.ok(contains.has(t) || rules.some((r) => r.kind === 'contains' && r.term === t), t)
     }
@@ -232,7 +235,7 @@ describe('the committed data files', () => {
       assert.ok(protectedTermsOf(p, rules, h).length > 0, h)
     }
     // Ordinary words that contain a term, and names that are not religious, are not protected.
-    for (const h of ['hb-sprayer.com', 'parishilton-sextape.blog.drecom.jp', 'evangelionhentai.fr', 'unfaithfulwives.com', 'tylerfaith.com', 'youporn.faith', 'overcomic.com', 'conquer.xxx']) {
+    for (const h of ['tantiporno.com', 'hb-sprayer.com', 'parishilton-sextape.blog.drecom.jp', 'evangelionhentai.fr', 'unfaithfulwives.com', 'tylerfaith.com', 'youporn.faith', 'overcomic.com', 'conquer.xxx']) {
       assert.deepEqual(protectedTermsOf(p, rules, h), [], h)
     }
   })
@@ -278,5 +281,39 @@ describe('the committed data files', () => {
     ]) {
       assert.equal(isKeywordFalseMatch(k, h), false, h)
     }
+  })
+})
+
+describe('BLP_STRICT (prepared, off)', () => {
+  const k = parseKeywordRules(read('data/keyword-false-matches.txt'), normalizeDomainInput)
+
+  test('is off in src/config.ts', () => {
+    assert.equal(BLP_STRICT, false)
+  })
+
+  test('strong terms count only outside ordinary words', () => {
+    for (const h of ['freesexvideos.com', 'hotpornclips.net', 'xxx-tube.org', 'mynudes.tumblr.com', 'javhd.today', 'adultvideoworld.com', 'livewebcamsex.de', 'escortparis.fr', 'bigtits.com']) {
+      assert.equal(hasStrongTerm(k, h), true, h)
+    }
+    for (const h of ['sussextiles.co.uk', 'essexroofing.co.uk', 'lespetitsplats.fr', 'cocktailbar.com', 'javascript.info', 'adultdaycare.org', 'webcamreviews.com', 'unisexsalon.in', 'girlsexplorer.com', 'atlantagolfacademy.com']) {
+      assert.equal(hasStrongTerm(k, h), false, h)
+    }
+  })
+
+  test('in the build: a host only a keyword-matched source lists needs a strong term; others and reviewed hosts stay', () => {
+    const input = baseInput()
+    input.keywordMatchedSources = ['kw']
+    input.sources = [...input.sources, { id: 'kw', text: 'quietname.com\nfreeporn.com\nshared.com\nreviewedquiet.com\n' }, { id: 'other', text: 'shared.com\n' }]
+    input.data = { ...input.data, additions: 'reviewedquiet.com\n', keywordFalseMatches: read('data/keyword-false-matches.txt') }
+    const off = runBuild(input)
+    assert.ok(decodeHayaaList(off.files.get('hayaa-list-2026110101.bin')!).hosts.includes('quietname.com'))
+    assert.equal(off.report.counts.heldBackBlpStrict, 0)
+    const on = runBuild({ ...input, blpStrict: true })
+    const hosts = decodeHayaaList(on.files.get('hayaa-list-2026110101.bin')!).hosts
+    assert.ok(!hosts.includes('quietname.com'))
+    for (const h of ['freeporn.com', 'shared.com', 'reviewedquiet.com']) assert.ok(hosts.includes(h), h)
+    assert.deepEqual(on.heldBackBlpStrict, ['quietname.com'])
+    const info = parseBuildInfo(new TextDecoder().decode(on.files.get('build-info.json')))
+    assert.deepEqual([info.blpStrict, info.heldBackBlpStrict], [true, 1])
   })
 })

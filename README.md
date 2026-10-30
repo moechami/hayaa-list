@@ -83,9 +83,9 @@ reviewed it as genuinely adult and named it, with the reason, in
 `data/protected-terms.txt`: words of recovery (recover, rehab, addict,
 sober, nofap, therapy, counsel, integrity, "overcome" or "conquer" together
 with porn, "anonymous" together with porn, sex or addict, and the names of
-known recovery projects), of sexual health and abuse support (sexual
-health, sexual abuse, sexual assault, sexual harassment, helplines,
-gynecology, urology), of Christianity (church, bible, christ, gospel,
+known recovery projects, anti-porn), of sexual health and abuse support
+(sexual health, sexology, sexual abuse, sexual assault, sexual harassment,
+helplines, gynecology, urology), of Christianity (church, bible, christ, gospel,
 ministry, jesus, prayer, sermon, faith, parish, diocese, catholic,
 lutheran, baptist, methodist, evangelical), of Judaism (jewish) and of
 Islam (muslim, islam, quran, halal, masjid, deen, imam, allah, sunna,
@@ -121,6 +121,18 @@ The words are data, in `data/ordinary-names.txt`; the adult-looking list is
 deliberately broad ("hot", "girl", "video", "chat", "18"), so one such word
 keeps a host listed. Hosts a person reviewed as adult are never removed by
 this rule.
+
+### BLP_STRICT (prepared, off)
+
+The Block List Project matched words inside names, so many hosts only it
+lists have ordinary names. `BLP_STRICT` in `src/config.ts` (default
+`false`) would keep such a host only when a strong explicit term names it
+(the "strong" lines of `data/keyword-false-matches.txt`) and hold back the
+rest. Measured on the current sources: about 204,000 hosts held back,
+leaving about 890,000 (below the 900,000 floor, which would have to be
+lowered first, and a release that switches it on needs `allow_shrink`).
+A random 300 of the Block List Project-only hosts, read by name, was about
+4% clearly ordinary; of the whole list about 2%.
 
 ### Education and government hosts
 
