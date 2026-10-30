@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a site privately (email)
+    url: https://github.com/moechami/hayaa-list#reporting-a-site
+    about: Prefer not to post a site address in public? Email it to support@hayaa.io instead. The README explains how reports are handled.

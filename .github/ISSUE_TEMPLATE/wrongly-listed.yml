@@ -1,0 +1,28 @@
+name: A site is blocked that should not be
+description: Report an ordinary site that the Hayaa List blocks.
+title: "Wrongly listed: "
+labels: ["wrongly listed"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. Issues here are public. If you would rather not
+        post the address in public, email it to **support@hayaa.io** instead and
+        do not open this issue.
+
+        Every report is checked by hand. A wrong entry goes on the allowlist with
+        a reason and the fix ships in the next monthly release.
+  - type: input
+    id: address
+    attributes:
+      label: Address of the site
+      description: The host only, for example `example.com` or `blog.example.com`. No page links are needed.
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What the site is
+      description: One or two sentences, for example "a cooking blog" or "a university library".
+    validations:
+      required: true

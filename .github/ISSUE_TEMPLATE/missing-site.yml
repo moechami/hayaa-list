@@ -1,0 +1,29 @@
+name: An adult site is missing
+description: Report an adult site the Hayaa List does not block yet.
+title: "Missing site"
+labels: ["missing site"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. Issues here are public, and an address posted
+        here stays visible to everyone. If you prefer, email the address to
+        **support@hayaa.io** instead and do not open this issue.
+
+        Please do not post links to pages or images, only the site's address.
+        Every report is checked by hand before it is added; nothing is added
+        automatically.
+  - type: input
+    id: address
+    attributes:
+      label: Address of the site
+      description: The host only, for example `example.com`. If it is only one section of an ordinary site, give the host and the section path.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else (optional)
+      description: For example other addresses the same site uses. Please keep it to text.
+    validations:
+      required: false
