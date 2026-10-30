@@ -24,6 +24,18 @@ describe('normalizeDomainInput (same rules as the app)', () => {
     [['localhost'], [''], ['-bad.com'], ['bad-.com'], ['a..com'], ['under_score.com'], [`${'x'.repeat(64)}.com`]] as const,
     (input) => assert.equal(normalizeDomainInput(input), null),
   )
+
+  test('hosts longer than 253 characters are refused (DNS limit), 253 is accepted', () => {
+    const label = 'a'.repeat(61)
+    const at253 = `${'a'.repeat(63)}.${label}.${label}.${label}.com`
+    assert.equal(at253.length, 253)
+    assert.equal(normalizeDomainInput(at253), at253)
+    assert.equal(normalizeDomainInput('b' + at253), null)
+    // Counted after "www." is stripped: the stored host is what must fit.
+    assert.equal(normalizeDomainInput('www.' + at253), at253)
+    // A list line that long is skipped, never thrown on.
+    assert.deepEqual(parseList(`0.0.0.0 b${at253}\nok.com\n`), { hosts: new Set(['ok.com']), lines: 2, skipped: 1 })
+  })
 })
 
 describe('source parsing', () => {

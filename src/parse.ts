@@ -42,18 +42,26 @@ export const parseListLine = (line: string): string | null => {
   return normalizeDomainInput(lower)
 }
 
-/** Parse a whole file; returns unique hosts and how many lines were skipped. */
-export const parseList = (text: string): { hosts: Set<string>; skipped: number } => {
+/**
+ * Parse a whole file; returns unique hosts, how many non-comment lines it
+ * has and how many of those were skipped as unreadable.
+ */
+export const parseList = (text: string): { hosts: Set<string>; lines: number; skipped: number } => {
   const hosts = new Set<string>()
+  let lines = 0
   let skipped = 0
   for (const line of text.split(/\r?\n/)) {
     if (line.trim() === '' || line.trimStart().startsWith('#')) continue
+    lines++
     const host = parseListLine(line)
     if (host === null) skipped++
     else hosts.add(host)
   }
-  return { hosts, skipped }
+  return { hosts, lines, skipped }
 }
+
+/** True when `host` or one of its parents is in `set`: the lookup rule, over a plain set. */
+export const coveredBy = (set: ReadonlySet<string>, host: string): boolean => set.has(host) || parentDomains(host).some((p) => set.has(p))
 
 /** Every proper parent of at least two labels: "a.b.c.com" → ["b.c.com", "c.com"]. */
 export const parentDomains = (host: string): string[] => {

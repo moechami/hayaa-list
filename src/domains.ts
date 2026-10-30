@@ -1,9 +1,14 @@
 // Host normalization, identical to the Hayaa app's normalizeDomainInput
 // (lib/blocker/domains.ts), which mirrors DomainMatcher.normalize in Kotlin.
 // List entries and user-typed domains go through ONE definition of "a host",
-// so a site the app normalizes one way is never listed another way.
+// so a site the app normalizes one way is never listed another way. The one
+// addition is the 253-character cap below, which only refuses names that
+// cannot exist in DNS.
 
 import punycode from 'punycode/'
+
+/** The longest hostname DNS allows (RFC 1035 section 2.3.4, without the trailing dot). */
+export const MAX_HOST_CHARS = 253
 
 /**
  * Normalize a list entry or a pasted URL ("https://www.Example.com/path?q=1")
@@ -34,6 +39,11 @@ export const normalizeDomainInput = (raw: string): string | null => {
     return null
   }
   if (value.startsWith('www.')) value = value.slice(4)
+  // A DNS name is at most 253 characters. Checked here (one addition to the
+  // app's rules) so one over-long upstream line is skipped like any other
+  // malformed line instead of reaching the list writer, whose keys stop at
+  // 255 bytes.
+  if (value.length > MAX_HOST_CHARS) return null
   // Structural validation: at least two labels, each 1-63 chars of
   // letter/digit/hyphen, not hyphen-edged.
   const labels = value.split('.')
