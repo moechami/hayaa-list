@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Every tunable of the build in one place. Each value is a deliberate choice;
 // the comment says why it has the value it has.
 
@@ -20,8 +22,9 @@ export const TRANCO_TOP = 10_000
  * Listed subdomains of the most popular registrable domains (this many Tranco
  * ranks) must be reviewed too: one wrong entry there (m.vk.com) breaks a site
  * millions of people use, while the site itself passes the top-sites gate.
+ * The whole pinned top 10,000.
  */
-export const TOP_SUBDOMAIN_RANKS = 1_000
+export const TOP_SUBDOMAIN_RANKS = 10_000
 
 /** Size of the free starter list, and how many of its entries one brand may take. */
 export const STARTER_SIZE = 50
@@ -43,6 +46,38 @@ export const MAX_NEW_HELD_BACK = 25
  */
 export const MIN_TOTAL_RATIO = 0.9
 export const MIN_SOURCE_RATIO = 0.7
+
+/**
+ * Slow-shrink guard. The 10% gate above compares with the previous release
+ * only, so a list could lose 9% a month for months. The total is therefore
+ * also compared with the largest of the last SHRINK_HISTORY releases (their
+ * counts travel in the signed build-info.json), and must never fall below
+ * MIN_HOST_FLOOR, about 80% of the first release (1.1 million hosts). After a
+ * deliberate, reviewed removal (allow_shrink), the history restarts from that
+ * release; the floor is lowered only by editing this line.
+ */
+export const SHRINK_HISTORY = 6
+export const MIN_HOST_FLOOR = 900_000
+
+/**
+ * Growth gates against the previous release. A hijacked or broken upstream
+ * shows as sudden growth as surely as shrinkage: a list that grows more than
+ * 15% in one month, a source that grows more than 30%, or a source that adds
+ * more than 50,000 registrable domains the previous release did not list,
+ * stops the build. Real months add a few percent. A maintainer who has
+ * checked the growth can pass the workflow input allow_growth (shown in the
+ * release notes).
+ */
+export const MAX_TOTAL_GROWTH = 0.15
+export const MAX_SOURCE_GROWTH = 0.3
+export const MAX_NEW_REGISTRABLE_DOMAINS = 50_000
+
+/**
+ * Sources built partly by matching words inside domain names. Hosts that only
+ * these sources list go through data/keyword-false-matches.txt, which removes
+ * names such as "essexroofing.co.uk" that matched "sex" inside "Essex".
+ */
+export const KEYWORD_MATCHED_SOURCES: readonly string[] = ['blocklistproject-porn']
 
 /**
  * A source whose unreadable lines exceed 1% of its non-comment lines (and at

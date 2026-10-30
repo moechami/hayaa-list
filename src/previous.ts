@@ -1,19 +1,33 @@
-// The previous release, which the monthly build compares itself against:
+// SPDX-License-Identifier: GPL-3.0-or-later
 //
-//   - build-info.json: per-source host counts and the entries held back for
-//     review (written by every build, attached to every release);
-//   - hayaa-list-<serial>.txt: the hosts the previous release listed.
+// The previous release, which the monthly build compares itself against.
 //
-// In CI they come from the latest GitHub release (fetchPreviousRelease); a
-// repository with no release yet gives an empty folder, and any other API
-// answer fails the job instead of being mistaken for "no release". Locally
-// they come from an earlier build in dist/, or nothing.
+// Everything is taken from SIGNED files only:
+//   - manifest.json (+ .sig): names the list file, its sizes and hashes;
+//   - hayaa-list-<serial>.bin.gz: the list itself, checked against the
+//     manifest and fully validated, then decoded for the previous host set;
+//   - build-info.json (+ .sig): per-source counts, the host-count history and
+//     the entries held back for review.
+// The plain-text list attached to a release is a convenience for people and
+// is never read: it is not signed.
+//
+// In CI the release comes from GitHub (fetchPreviousRelease) and every
+// signature must verify against a key in keys/; a repository with no release
+// yet gives an empty folder, and any other API answer fails the job instead
+// of being mistaken for "no release". Locally the previous release is an
+// earlier build in dist/ (unsigned, so only the hashes are checked), or
+// nothing.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { decodeHayaaList, readHayaaListHeader, validateHayaaList } from './format'
+import { gunzip } from './gzip'
+import { validateManifest, type Manifest } from './manifest'
+import { sha256Hex } from './hash'
+import { verifySignature } from './signing'
 
 export const BUILD_INFO = 'build-info.json'
-export const BUILD_INFO_VERSION = 1
+export const BUILD_INFO_VERSION = 2
 
 export type SourceInfo = { id: string; commit: string | null; sha256: string; lines: number; hosts: number; skippedLines: number }
 
@@ -23,6 +37,8 @@ export type BuildInfo = {
   serial: number
   hostCount: number
   pathCount: number
+  /** Host counts of the latest releases, oldest first, this one last (config.ts SHRINK_HISTORY). */
+  hostCountHistory: number[]
   sources: SourceInfo[]
   /** Entries left out of this release until a person reviews them. */
   heldBack: { topSites: string[]; topSiteSubdomains: string[] }
@@ -31,8 +47,7 @@ export type BuildInfo = {
 export type PreviousRelease = {
   /** Host entries of the previous list (page entries are not needed). */
   hosts: ReadonlySet<string>
-  /** Null for a release made before build-info.json existed. */
-  info: BuildInfo | null
+  info: BuildInfo
   /** Where it came from, for the log. */
   origin: string
 }
@@ -43,6 +58,7 @@ export const serializeBuildInfo = (info: BuildInfo): Uint8Array => {
     serial: info.serial,
     hostCount: info.hostCount,
     pathCount: info.pathCount,
+    hostCountHistory: [...info.hostCountHistory],
     sources: info.sources.map((s) => ({ id: s.id, commit: s.commit, sha256: s.sha256, lines: s.lines, hosts: s.hosts, skippedLines: s.skippedLines })),
     heldBack: { topSites: [...info.heldBack.topSites], topSiteSubdomains: [...info.heldBack.topSiteSubdomains] },
   }
@@ -58,6 +74,10 @@ export const parseBuildInfo = (text: string): BuildInfo => {
   const o: unknown = JSON.parse(text)
   if (!isObj(o) || o.buildInfoVersion !== BUILD_INFO_VERSION) throw new Error('build-info.json: unknown buildInfoVersion')
   if (!isCount(o.serial) || !isCount(o.hostCount) || !isCount(o.pathCount)) throw new Error('build-info.json: bad counts')
+  const history = o.hostCountHistory
+  if (!Array.isArray(history) || history.length === 0 || !history.every(isCount) || history[history.length - 1] !== o.hostCount) {
+    throw new Error('build-info.json: bad hostCountHistory')
+  }
   if (!Array.isArray(o.sources)) throw new Error('build-info.json: sources missing')
   const sources: SourceInfo[] = o.sources.map((s: unknown) => {
     if (!isObj(s) || typeof s.id !== 'string' || typeof s.sha256 !== 'string') throw new Error('build-info.json: bad source')
@@ -67,42 +87,85 @@ export const parseBuildInfo = (text: string): BuildInfo => {
   })
   const h = o.heldBack
   if (!isObj(h) || !isStrings(h.topSites) || !isStrings(h.topSiteSubdomains)) throw new Error('build-info.json: bad heldBack')
-  return { buildInfoVersion: BUILD_INFO_VERSION, serial: o.serial, hostCount: o.hostCount, pathCount: o.pathCount, sources, heldBack: { topSites: h.topSites, topSiteSubdomains: h.topSiteSubdomains } }
+  return {
+    buildInfoVersion: BUILD_INFO_VERSION,
+    serial: o.serial,
+    hostCount: o.hostCount,
+    pathCount: o.pathCount,
+    hostCountHistory: history as number[],
+    sources,
+    heldBack: { topSites: h.topSites, topSiteSubdomains: h.topSiteSubdomains },
+  }
 }
 
-/** Host entries of a plain-text list (page entries, which contain "/", are skipped). */
-export const parseListText = (text: string): Set<string> => {
-  const out = new Set<string>()
-  for (const line of text.split(/\r?\n/)) {
-    const entry = line.trim()
-    if (entry !== '' && !entry.includes('/')) out.add(entry)
+/** Every public key in `keysDir` (files named <keyId>.pub.pem), keyed by key id. */
+export const readPublicKeys = (keysDir: string): Map<string, string> => {
+  const out = new Map<string, string>()
+  if (!existsSync(keysDir)) return out
+  for (const name of readdirSync(keysDir).sort()) {
+    const m = /^([A-Za-z0-9_-]{1,32})\.pub\.pem$/.exec(name)
+    if (m) out.set(m[1], readFileSync(join(keysDir, name), 'utf8'))
   }
   return out
 }
 
-const LIST_TXT = /^hayaa-list-([0-9]{10})\.txt$/
+/** True when `sig` verifies `data` under one of `keys`. */
+const signedByOneOf = (data: Uint8Array, sig: Uint8Array, keys: ReadonlyMap<string, string>): boolean =>
+  [...keys.values()].some((pem) => verifySignature(data, sig, pem))
+
+/**
+ * Check `<dir>/<name>.sig` against `keys`; throws when it is missing or does
+ * not verify. Used for every signed file of a downloaded release.
+ */
+export const assertSigned = (dir: string, name: string, keys: ReadonlyMap<string, string>): void => {
+  if (keys.size === 0) throw new Error('no public keys in keys/: a signed previous release cannot be checked')
+  const sigPath = join(dir, `${name}.sig`)
+  if (!existsSync(sigPath)) throw new Error(`${dir}: ${name}.sig is missing`)
+  const data = new Uint8Array(readFileSync(join(dir, name)))
+  if (!signedByOneOf(data, new Uint8Array(readFileSync(sigPath)), keys)) throw new Error(`${dir}: ${name}.sig does not verify with any key in keys/`)
+}
 
 /**
  * The previous release in `dir`, or null when there is none (no folder, or
- * no list in it). With build-info.json the list must be the one it names;
- * without it (a release older than build-info.json) the newest list there is
- * used and the count gates are skipped.
+ * an empty one). With `keys`, manifest.json and build-info.json must carry
+ * signatures that verify with one of them; with null (a local build in
+ * dist/), signatures are not required. Either way the list file must match
+ * the manifest exactly and pass full validation, and build-info.json must
+ * describe the same list. The host set is decoded from the list file.
  */
-export const readPreviousDir = (dir: string): PreviousRelease | null => {
+export const readPreviousDir = (dir: string, keys: ReadonlyMap<string, string> | null): PreviousRelease | null => {
   if (!existsSync(dir)) return null
+  const manifestPath = join(dir, 'manifest.json')
   const infoPath = join(dir, BUILD_INFO)
-  if (existsSync(infoPath)) {
-    const info = parseBuildInfo(readFileSync(infoPath, 'utf8'))
-    const txt = join(dir, `hayaa-list-${info.serial}.txt`)
-    if (!existsSync(txt)) throw new Error(`${dir}: ${BUILD_INFO} names serial ${info.serial} but hayaa-list-${info.serial}.txt is missing`)
-    return { hosts: parseListText(readFileSync(txt, 'utf8')), info, origin: `${dir} (serial ${info.serial})` }
+  if (!existsSync(manifestPath)) {
+    if (existsSync(infoPath)) throw new Error(`${dir}: ${BUILD_INFO} without manifest.json`)
+    return null
   }
-  const lists = readdirSync(dir)
-    .filter((n) => LIST_TXT.test(n))
-    .sort()
-  if (lists.length === 0) return null
-  const newest = lists[lists.length - 1]
-  return { hosts: parseListText(readFileSync(join(dir, newest), 'utf8')), info: null, origin: `${dir}/${newest} (no ${BUILD_INFO})` }
+  if (!existsSync(infoPath)) throw new Error(`${dir}: manifest.json without ${BUILD_INFO}`)
+  if (keys !== null) {
+    assertSigned(dir, 'manifest.json', keys)
+    assertSigned(dir, BUILD_INFO, keys)
+  }
+  const manifestBytes = new Uint8Array(readFileSync(manifestPath))
+  const problem = validateManifest(manifestBytes)
+  if (problem) throw new Error(`${dir}: manifest.json refused (${problem})`)
+  const m = JSON.parse(new TextDecoder().decode(manifestBytes)) as Manifest
+  const gzPath = join(dir, m.file.name)
+  if (!existsSync(gzPath)) throw new Error(`${dir}: ${m.file.name} is missing`)
+  const gz = new Uint8Array(readFileSync(gzPath))
+  if (gz.length !== m.file.gzSize || sha256Hex(gz) !== m.file.gzSha256) throw new Error(`${dir}: ${m.file.name} does not match the manifest`)
+  const raw = gunzip(gz)
+  if (raw.length !== m.file.size || sha256Hex(raw) !== m.file.sha256) throw new Error(`${dir}: inflated list does not match the manifest`)
+  const header = readHayaaListHeader(raw)
+  if (!header || header.serial !== m.serial || header.hostCount !== m.hostCount) throw new Error(`${dir}: list header does not match the manifest`)
+  const invalid = validateHayaaList(raw)
+  if (invalid) throw new Error(`${dir}: list failed validation (${invalid})`)
+  const decoded = decodeHayaaList(raw)
+  const info = parseBuildInfo(readFileSync(infoPath, 'utf8'))
+  if (info.serial !== m.serial || info.hostCount !== m.hostCount || info.pathCount !== decoded.paths.length) {
+    throw new Error(`${dir}: ${BUILD_INFO} does not describe the list the manifest names`)
+  }
+  return { hosts: new Set(decoded.hosts), info, origin: `${dir} (serial ${m.serial}${keys ? ', signatures verified' : ', unsigned local build'})` }
 }
 
 // ---------------------------------------------------------------------------
@@ -157,29 +220,45 @@ export const releaseSerials = async (repo: string, token: string | undefined, f:
   throw new Error('GitHub API: too many release pages')
 }
 
+/** The files of a release that the next build reads, every one required. */
+export const previousAssetNames = (serial: string): string[] => [
+  'manifest.json',
+  'manifest.json.sig',
+  `hayaa-list-${serial}.bin.gz`,
+  BUILD_INFO,
+  `${BUILD_INFO}.sig`,
+  'sources.lock.json',
+  'sources.lock.json.sig',
+]
+
 /**
- * Download the latest release's list, build-info.json and sources.lock.json
- * into `outDir` (created, possibly left empty). Returns the tag, or null when
- * the repository has no release yet. A release without its plain-text list
- * is refused: comparing against an empty list would hold back nothing that
- * was listed before and re-review everything.
+ * Download the latest release's signed files into `outDir` (created, possibly
+ * left empty) and check every signature against `keys` before anything is
+ * used. Returns the tag, or null when the repository has no release yet. A
+ * release missing any of the files, or with a signature that does not
+ * verify, or whose manifest names another serial than its tag, is refused.
  */
-export const fetchPreviousRelease = async (repo: string, outDir: string, token: string | undefined, f: FetchLike): Promise<string | null> => {
+export const fetchPreviousRelease = async (
+  repo: string,
+  outDir: string,
+  token: string | undefined,
+  f: FetchLike,
+  keys: ReadonlyMap<string, string>,
+): Promise<string | null> => {
   mkdirSync(outDir, { recursive: true })
   const latest = await latestRelease(repo, token, f)
   if (latest === null) return null
   const m = /^v([0-9]{10})$/.exec(latest.tag)
   if (!m) throw new Error(`latest release tag ${latest.tag} is not v<serial>`)
-  const want = [`hayaa-list-${m[1]}.txt`, BUILD_INFO, 'sources.lock.json']
-  for (const name of want) {
+  for (const name of previousAssetNames(m[1])) {
     const asset = latest.assets.find((a) => a.name === name)
-    if (!asset) {
-      if (name === want[0]) throw new Error(`release ${latest.tag} has no ${name}`)
-      continue // older releases have no build-info.json
-    }
+    if (!asset) throw new Error(`release ${latest.tag} has no ${name}`)
     const res = await f(asset.url, { headers: { 'user-agent': 'hayaa-list-build' } })
     if (!res.ok) throw new Error(`HTTP ${res.status} downloading ${name} from ${latest.tag}`)
     writeFileSync(join(outDir, name), new Uint8Array(await res.arrayBuffer()))
   }
+  for (const name of ['manifest.json', BUILD_INFO, 'sources.lock.json']) assertSigned(outDir, name, keys)
+  const serial = (JSON.parse(readFileSync(join(outDir, 'manifest.json'), 'utf8')) as { serial?: unknown }).serial
+  if (serial !== Number(m[1])) throw new Error(`release ${latest.tag}: its signed manifest names serial ${String(serial)}`)
   return latest.tag
 }

@@ -1,8 +1,16 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // sources.lock.json: every input of the build, pinned. Sources and the Public
 // Suffix List are pinned to an immutable commit (raw.githubusercontent.com
 // URL with the commit SHA) plus the SHA-256 of the file; the top-sites list
 // is pinned by its permanent Tranco list ID plus SHA-256. A build fetches
 // exactly these bytes or fails.
+//
+// Each GitHub repository is also pinned by its numeric id (GET
+// /repos/{owner}/{repo}). A repository that is renamed, redirected, or
+// deleted and recreated under the same name by someone else gets another id
+// or name, and the monthly re-pin then keeps the last pin and opens an issue
+// instead of following it.
 
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -12,6 +20,8 @@ export type PinnedSource = {
   id: string
   name: string
   repo: string
+  /** GitHub's numeric id of `repo`; a re-pin is refused when it changes. */
+  repoId: number
   branch: string
   path: string
   commit: string
@@ -38,7 +48,7 @@ export type PinnedSource = {
 export type Lock = {
   lockVersion: 1
   sources: PinnedSource[]
-  publicSuffixList: { repo: string; branch: string; path: string; commit: string; url: string; sha256: string; license: string; homepage: string }
+  publicSuffixList: { repo: string; repoId: number; branch: string; path: string; commit: string; url: string; sha256: string; license: string; homepage: string }
   tranco: { listId: string; top: number; url: string; sha256: string; homepage: string }
 }
 
@@ -61,6 +71,7 @@ export const readLock = (path: string): Lock => {
     if (!SHA1.test(s.commit) || !HEX64.test(s.sha256) || !HEX64.test(s.licenseSha256)) throw new Error(`${s.id}: commit or hash missing`)
     if (s.url !== rawUrl(s.repo, s.commit, s.path)) throw new Error(`${s.id}: url is not pinned to its commit`)
     if (s.frozen !== undefined && typeof s.frozen !== 'boolean') throw new Error(`${s.id}: frozen must be true or false`)
+    if (!Number.isSafeInteger(s.repoId) || s.repoId <= 0) throw new Error(`${s.id}: repoId missing`)
     const j = s.licenseJson
     if (j !== undefined && (typeof j.file !== 'string' || typeof j.key !== 'string' || typeof j.expected !== 'string')) {
       throw new Error(`${s.id}: licenseJson needs file, key and expected`)
@@ -68,6 +79,7 @@ export const readLock = (path: string): Lock => {
   }
   const p = lock.publicSuffixList
   if (!SHA1.test(p.commit) || !HEX64.test(p.sha256) || p.url !== rawUrl(p.repo, p.commit, p.path)) throw new Error('publicSuffixList: not pinned')
+  if (!Number.isSafeInteger(p.repoId) || p.repoId <= 0) throw new Error('publicSuffixList: repoId missing')
   const t = lock.tranco
   if (!/^[A-Z0-9]{4,8}$/.test(t.listId) || !HEX64.test(t.sha256) || t.url !== trancoUrl(t.listId, t.top)) throw new Error('tranco: not pinned')
   return lock

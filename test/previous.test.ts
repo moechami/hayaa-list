@@ -1,39 +1,62 @@
-// The previous release: read from a folder (CI download or local dist/), and
-// fetched from GitHub with "no release yet" told apart from an API error.
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// The previous release: read only from signed files (the manifest, the list
+// file it names, build-info.json), with the host set decoded from the signed
+// list; fetched from GitHub with every signature checked and "no release yet"
+// told apart from an API error.
 
 import assert from 'node:assert/strict'
+import { generateKeyPairSync } from 'node:crypto'
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, describe, test } from 'node:test'
 import { serialProblem } from '../scripts/check-serial'
+import { runBuild } from '../src/pipeline'
 import {
   fetchPreviousRelease,
   latestRelease,
   parseBuildInfo,
-  parseListText,
+  previousAssetNames,
   readPreviousDir,
+  readPublicKeys,
   releaseSerials,
   serializeBuildInfo,
   type BuildInfo,
   type FetchLike,
 } from '../src/previous'
+import { signManifest } from '../src/signing'
+import { baseInput } from './synthetic'
 
 const tmp = mkdtempSync(join(tmpdir(), 'hayaa-list-prev-'))
 after(() => rmSync(tmp, { recursive: true, force: true }))
 
 const INFO: BuildInfo = {
-  buildInfoVersion: 1,
+  buildInfoVersion: 2,
   serial: 2026110101,
   hostCount: 2,
   pathCount: 1,
+  hostCountHistory: [3, 2],
   sources: [{ id: 's', commit: 'c'.repeat(40), sha256: 'a'.repeat(64), lines: 3, hosts: 2, skippedLines: 1 }],
   heldBack: { topSites: ['new-top.com'], topSiteSubdomains: [] },
 }
 
-const dir = (files: Record<string, string>): string => {
-  const d = mkdtempSync(join(tmp, 'd-'))
-  for (const [name, text] of Object.entries(files)) writeFileSync(join(d, name), text)
+const keyPair = (): { priv: string; pub: string } => {
+  const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
+  return { priv: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(), pub: publicKey.export({ type: 'spki', format: 'pem' }).toString() }
+}
+const key = keyPair()
+const otherKey = keyPair()
+const keys = new Map([['k1', key.pub]])
+
+/** A real release folder from the synthetic build, signed with `priv` (or unsigned). */
+const releaseDir = (priv: string | null, edit?: (dir: string) => void): string => {
+  const d = mkdtempSync(join(tmp, 'rel-'))
+  const out = runBuild(baseInput())
+  for (const [name, bytes] of out.files) writeFileSync(join(d, name), bytes)
+  writeFileSync(join(d, 'sources.lock.json'), '{"lockVersion":1}\n')
+  if (priv) for (const name of ['manifest.json', 'build-info.json', 'sources.lock.json']) writeFileSync(join(d, `${name}.sig`), signManifest(readFileSync(join(d, name)), priv))
+  edit?.(d)
   return d
 }
 
@@ -46,36 +69,69 @@ describe('build-info.json', () => {
 
   test('a damaged file is refused, never read as empty', () => {
     assert.throws(() => parseBuildInfo('{}'), /buildInfoVersion/)
+    assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, buildInfoVersion: 1 })), /buildInfoVersion/)
     assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, hostCount: -1 })), /bad counts/)
     assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, heldBack: { topSites: [1] } })), /heldBack/)
+    assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, hostCountHistory: [] })), /hostCountHistory/)
+    assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, hostCountHistory: [5] })), /hostCountHistory/) // must end with hostCount
     assert.throws(() => parseBuildInfo('not json'))
   })
 })
 
 describe('reading a previous release from a folder', () => {
-  test('host entries of the plain-text list, page entries skipped', () => {
-    assert.deepEqual([...parseListText('a.com\r\nb.com\nreddit.com/r/x\n\n')], ['a.com', 'b.com'])
+  test('signed: the host set is decoded from the signed list, not the plain text', () => {
+    const d = releaseDir(key.priv, (dir) => writeFileSync(join(dir, 'hayaa-list-2026110101.txt'), 'forged.com\n'))
+    const p = readPreviousDir(d, keys)!
+    assert.deepEqual([...p.hosts].sort(), ['adult-cdn.com', 'adult-one.com', 'adult-three.net', 'adult-two.com', 'someone.blogspot.com', 'sub.platform.com'])
+    assert.equal(p.info.serial, 2026110101)
+    assert.match(p.origin, /signatures verified/)
   })
 
-  test('no folder, or no list in it: no previous release', () => {
-    assert.equal(readPreviousDir(join(tmp, 'missing')), null)
-    assert.equal(readPreviousDir(dir({ 'other.txt': 'x' })), null)
+  test('signed mode refuses a missing or wrong signature on the manifest or build-info.json', () => {
+    assert.throws(() => readPreviousDir(releaseDir(null), keys), /manifest.json.sig is missing/)
+    assert.throws(() => readPreviousDir(releaseDir(otherKey.priv), keys), /manifest.json.sig does not verify/)
+    const forgedInfo = releaseDir(key.priv, (dir) => {
+      const info = parseBuildInfo(readFileSync(join(dir, 'build-info.json'), 'utf8'))
+      writeFileSync(join(dir, 'build-info.json'), serializeBuildInfo({ ...info, sources: [] }))
+    })
+    assert.throws(() => readPreviousDir(forgedInfo, keys), /build-info.json.sig does not verify/)
+    assert.throws(() => readPreviousDir(releaseDir(key.priv), new Map()), /no public keys/)
   })
 
-  test('with build-info.json: the list it names', () => {
-    const p = readPreviousDir(dir({ 'build-info.json': JSON.stringify(INFO), 'hayaa-list-2026110101.txt': 'a.com\nb.com\n', 'hayaa-list-2026120101.txt': 'z.com\n' }))!
-    assert.deepEqual([...p.hosts].sort(), ['a.com', 'b.com'])
-    assert.equal(p.info?.serial, 2026110101)
+  test('the list file must match the signed manifest exactly', () => {
+    const d = releaseDir(key.priv, (dir) => {
+      const gz = readFileSync(join(dir, 'hayaa-list-2026110101.bin.gz'))
+      gz[gz.length - 1] ^= 1
+      writeFileSync(join(dir, 'hayaa-list-2026110101.bin.gz'), gz)
+    })
+    assert.throws(() => readPreviousDir(d, keys), /does not match the manifest/)
+    assert.throws(() => readPreviousDir(releaseDir(key.priv, (dir) => rmSync(join(dir, 'hayaa-list-2026110101.bin.gz'))), keys), /is missing/)
   })
 
-  test('build-info.json naming a list that is missing is an error', () => {
-    assert.throws(() => readPreviousDir(dir({ 'build-info.json': JSON.stringify(INFO) })), /missing/)
+  test('build-info.json must describe the list the manifest names', () => {
+    const d = releaseDir(null, (dir) => writeFileSync(join(dir, 'build-info.json'), serializeBuildInfo({ ...INFO, serial: 2026110101, hostCount: 2, hostCountHistory: [2] })))
+    assert.throws(() => readPreviousDir(d, null), /does not describe the list/)
   })
 
-  test('an older release without build-info.json: the newest list, no counts', () => {
-    const p = readPreviousDir(dir({ 'hayaa-list-2026100101.txt': 'old.com\n', 'hayaa-list-2026110101.txt': 'new.com\n' }))!
-    assert.deepEqual([...p.hosts], ['new.com'])
-    assert.equal(p.info, null)
+  test('unsigned mode (a local dist/) checks hashes but needs no signatures', () => {
+    const p = readPreviousDir(releaseDir(null), null)!
+    assert.equal(p.hosts.size, 6)
+    assert.match(p.origin, /unsigned local build/)
+  })
+
+  test('no folder, or an empty one: no previous release; half a release is an error', () => {
+    assert.equal(readPreviousDir(join(tmp, 'missing'), keys), null)
+    assert.equal(readPreviousDir(mkdtempSync(join(tmp, 'empty-')), keys), null)
+    assert.throws(() => readPreviousDir(releaseDir(key.priv, (dir) => rmSync(join(dir, 'manifest.json'))), keys), /without manifest.json/)
+    assert.throws(() => readPreviousDir(releaseDir(key.priv, (dir) => rmSync(join(dir, 'build-info.json'))), keys), /without build-info.json/)
+  })
+
+  test('public keys are read from keys/<id>.pub.pem only', () => {
+    const d = mkdtempSync(join(tmp, 'keys-'))
+    writeFileSync(join(d, 'k1.pub.pem'), key.pub)
+    writeFileSync(join(d, 'README.md'), 'x')
+    writeFileSync(join(d, 'k2.key.pem'), 'never')
+    assert.deepEqual([...readPublicKeys(d).keys()], ['k1'])
   })
 })
 
@@ -100,12 +156,21 @@ const fakeFetch = (routes: Record<string, { status: number; body?: string | Uint
 const LATEST = 'https://api.github.com/repos/o/r/releases/latest'
 const asset = (name: string): { name: string; browser_download_url: string } => ({ name, browser_download_url: `https://dl/${name}` })
 
+/** Routes serving the release in `dir` under tag `tag`, all of `names` attached. */
+const serve = (dir: string, tag = 'v2026110101', names = previousAssetNames('2026110101')): Record<string, { status: number; body?: Uint8Array | string }> => {
+  const routes: Record<string, { status: number; body?: Uint8Array | string }> = {
+    [LATEST]: { status: 200, body: JSON.stringify({ tag_name: tag, assets: [...names, 'starter.bin'].map(asset) }) },
+  }
+  for (const n of names) routes[`https://dl/${n}`] = { status: 200, body: new Uint8Array(readFileSync(join(dir, n))) }
+  return routes
+}
+
 describe('fetching the previous release from GitHub', () => {
   test('HTTP 404: the repository has no release yet', async () => {
     const f = fakeFetch({ [LATEST]: { status: 404 } })
     assert.equal(await latestRelease('o/r', undefined, f), null)
     const out = join(tmp, 'none')
-    assert.equal(await fetchPreviousRelease('o/r', out, undefined, f), null)
+    assert.equal(await fetchPreviousRelease('o/r', out, undefined, f, keys), null)
     assert.deepEqual(readdirSync(out), [])
   })
 
@@ -116,38 +181,34 @@ describe('fetching the previous release from GitHub', () => {
     await assert.rejects(latestRelease('o/r', 't', fakeFetch({ [LATEST]: { status: 200, body: '{"oops":1}' } })), /unexpected/)
   })
 
-  test('downloads the list, build-info.json and the lock', async () => {
-    const f = fakeFetch({
-      [LATEST]: {
-        status: 200,
-        body: JSON.stringify({ tag_name: 'v2026110101', assets: ['hayaa-list-2026110101.txt', 'build-info.json', 'sources.lock.json', 'starter.bin'].map(asset) }),
-      },
-      'https://dl/hayaa-list-2026110101.txt': { status: 200, body: 'a.com\n' },
-      'https://dl/build-info.json': { status: 200, body: JSON.stringify(INFO) },
-      'https://dl/sources.lock.json': { status: 200, body: '{}' },
-    })
+  test('downloads the signed files, checks every signature, and the build can read them', async () => {
+    const f = fakeFetch(serve(releaseDir(key.priv)))
     const out = join(tmp, 'full')
-    assert.equal(await fetchPreviousRelease('o/r', out, 'token', f), 'v2026110101')
-    assert.deepEqual(readdirSync(out).sort(), ['build-info.json', 'hayaa-list-2026110101.txt', 'sources.lock.json'])
-    assert.equal(readFileSync(join(out, 'hayaa-list-2026110101.txt'), 'utf8'), 'a.com\n')
+    assert.equal(await fetchPreviousRelease('o/r', out, 'token', f, keys), 'v2026110101')
+    assert.deepEqual(readdirSync(out).sort(), [...previousAssetNames('2026110101')].sort())
     assert.ok(!f.calls.includes('https://dl/starter.bin'))
+    assert.equal(readPreviousDir(out, keys)!.hosts.size, 6)
   })
 
-  test('an older release without build-info.json is fine; one without its list is refused', async () => {
-    const latest = (names: string[]): Record<string, { status: number; body: string }> => ({
-      [LATEST]: { status: 200, body: JSON.stringify({ tag_name: 'v2026110101', assets: names.map(asset) }) },
-      'https://dl/hayaa-list-2026110101.txt': { status: 200, body: 'a.com\n' },
-    })
-    assert.equal(await fetchPreviousRelease('o/r', join(tmp, 'old'), undefined, fakeFetch(latest(['hayaa-list-2026110101.txt']))), 'v2026110101')
-    await assert.rejects(fetchPreviousRelease('o/r', join(tmp, 'broken'), undefined, fakeFetch(latest(['manifest.json']))), /has no hayaa-list-2026110101.txt/)
+  test('a release missing any signed file, or signed by another key, is refused', async () => {
+    const names = previousAssetNames('2026110101').filter((n) => n !== 'build-info.json.sig')
+    await assert.rejects(fetchPreviousRelease('o/r', join(tmp, 'm1'), undefined, fakeFetch(serve(releaseDir(key.priv), 'v2026110101', names)), keys), /has no build-info.json.sig/)
+    await assert.rejects(fetchPreviousRelease('o/r', join(tmp, 'm2'), undefined, fakeFetch(serve(releaseDir(otherKey.priv))), keys), /does not verify/)
+    const forgedLock = releaseDir(key.priv, (dir) => writeFileSync(join(dir, 'sources.lock.json'), '{"lockVersion":1,"x":1}\n'))
+    await assert.rejects(fetchPreviousRelease('o/r', join(tmp, 'm3'), undefined, fakeFetch(serve(forgedLock)), keys), /sources.lock.json.sig does not verify/)
+  })
+
+  test('a signed manifest of another serial attached to a newer tag is refused', async () => {
+    const d = releaseDir(key.priv)
+    for (const n of ['manifest.json', 'manifest.json.sig', 'hayaa-list-2026110101.bin.gz']) writeFileSync(join(d, n.replace('2026110101', '2026120101')), readFileSync(join(d, n)))
+    const f = fakeFetch(serve(d, 'v2026120101', previousAssetNames('2026120101')))
+    await assert.rejects(fetchPreviousRelease('o/r', join(tmp, 'replay'), undefined, f, keys), /names serial 2026110101/)
   })
 
   test('a failed asset download throws', async () => {
-    const f = fakeFetch({
-      [LATEST]: { status: 200, body: JSON.stringify({ tag_name: 'v2026110101', assets: [asset('hayaa-list-2026110101.txt')] }) },
-      'https://dl/hayaa-list-2026110101.txt': { status: 503 },
-    })
-    await assert.rejects(fetchPreviousRelease('o/r', join(tmp, 'fail'), undefined, f), /HTTP 503/)
+    const routes = serve(releaseDir(key.priv))
+    routes['https://dl/manifest.json'] = { status: 503 }
+    await assert.rejects(fetchPreviousRelease('o/r', join(tmp, 'fail'), undefined, fakeFetch(routes), keys), /HTTP 503/)
   })
 })
 
@@ -183,4 +244,3 @@ describe('the serial must be newer than every release', () => {
     assert.match(serialProblem('9999999999', [])!, /bad serial/)
   })
 })
-

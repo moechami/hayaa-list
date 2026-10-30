@@ -1,13 +1,16 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // The build itself, without I/O: source texts, hand-kept files and the
 // previous release in; release files and a report out. Every gate that can
 // fail the build lives here, so the tests exercise exactly what the monthly
 // job runs.
 //
 //   parse each source (format gate) → union → add reviewed additions → drop
-//   bare public suffixes → allowlist → review gates on popular sites (hold
-//   back new unreviewed entries) → drop hosts a listed parent already covers
-//   → shrink gates → compile (format v2) → canaries and negatives → starter
-//   list → gzip → manifest and build-info.json
+//   bare public suffixes → protected-name gate → false keyword matches →
+//   allowlist → review gates on popular sites (hold back new unreviewed
+//   entries) → drop hosts a listed parent already covers → shrink and growth
+//   gates → compile (format v2) → canaries and negatives → starter list →
+//   gzip → manifest and build-info.json
 //
 // The allowlist runs BEFORE the parent dedupe: if a source lists a platform
 // root and some of its subdomains, removing the root after the dedupe would
@@ -15,13 +18,14 @@
 //
 // Review gates. Two kinds of entries need a person's review before they are
 // published: a site in the Tranco top 10,000 (data/reviewed-top-hits.txt),
-// and a listed subdomain of a site in the top 1,000
+// and a listed subdomain of a site in the top 10,000
 // (data/reviewed-top-site-subdomains.txt). An unreviewed one that the
 // previous release already listed stays listed; a new one is held back (left
 // out of this release, listed in build-info.json and in an issue) until it is
-// reviewed. More than MAX_NEW_HELD_BACK new ones at once fails the build.
+// reviewed. More than MAX_NEW_HELD_BACK new ones at once fails the build;
+// entries in data/pending-review.txt (looked at, left undecided) stay held
+// back without counting as new.
 
-import { createHash } from 'node:crypto'
 import {
   compileHayaaList,
   decodeHayaaList,
@@ -37,6 +41,10 @@ import { normalizeDomainInput } from './domains'
 import { isPublicSuffix, parsePsl, registrableDomain, type PublicSuffixList } from './psl'
 import { BUILD_INFO, BUILD_INFO_VERSION, serializeBuildInfo, type BuildInfo, type PreviousRelease, type SourceInfo } from './previous'
 import { MAX_SKIPPED_RATIO, MIN_SKIPPED_LINES, MIN_SOURCE_RATIO, MIN_TOTAL_RATIO } from './config'
+import { sha256Hex } from './hash'
+import { isKeywordFalseMatch, parseKeywordRules, parseProtectedTerms, parseReasonedHosts, protectedTermsOf } from './protected'
+
+export { sha256Hex }
 
 export type BuildInput = {
   /** Source texts in lock order, with the commit each was read at. */
@@ -53,6 +61,13 @@ export type BuildInput = {
     starterBrands: string
     canaries: string
     negatives: string
+    /** data/protected-terms.txt and data/reviewed-protected.txt (the protected-name gate). */
+    protectedTerms: string
+    reviewedProtected: string
+    /** data/keyword-false-matches.txt, for hosts only a keyword-matched source lists. */
+    keywordFalseMatches: string
+    /** data/pending-review.txt: popular entries a person looked at and left undecided. */
+    pendingReview: string
   }
   /** public_suffix_list.dat */
   psl: string
@@ -74,6 +89,17 @@ export type BuildInput = {
   maxNewHeldBack: number
   /** Skip the shrink gates (a deliberate, reviewed removal of a source). */
   allowShrink: boolean
+  /** Skip the growth gates (growth a person has checked). */
+  allowGrowth: boolean
+  /** Sources built partly by keyword matching (config.ts KEYWORD_MATCHED_SOURCES). */
+  keywordMatchedSources: readonly string[]
+  /** Slow-shrink guard: releases of host-count history, and the absolute floor. */
+  shrinkHistory: number
+  hostFloor: number
+  /** Growth gates (config.ts). */
+  maxTotalGrowth: number
+  maxSourceGrowth: number
+  maxNewRegistrableDomains: number
 }
 
 export type BuildReport = {
@@ -84,6 +110,8 @@ export type BuildReport = {
     union: number
     additions: number
     publicSuffixesDropped: number
+    protectedNamesRemoved: number
+    keywordFalseMatchesRemoved: number
     allowlisted: number
     finalHosts: number
     paths: number
@@ -97,6 +125,8 @@ export type BuildReport = {
     newHeldBack: number
     topSiteSubdomainEntries: number
   }
+  /** Per source: registrable domains it lists that the previous release did not (null without a previous release). */
+  newRegistrableDomains: Record<string, number> | null
   files: Record<string, { bytes: number; sha256: string }>
   warnings: string[]
 }
@@ -109,10 +139,15 @@ export type BuildOutput = {
   starter: string[]
   /** Entries left out of this release until reviewed. */
   heldBack: { topSites: string[]; topSiteSubdomains: string[] }
+  /** Held-back entries that are neither in data/pending-review.txt nor held back by the previous release. */
+  newHeldBack: string[]
   /** Unreviewed entries kept only because the previous release listed them. */
   keptFromPrevious: string[]
   /** Listed subdomains of the top-10,000 sites, a review aid (never published). */
   topSiteSubdomainEntries: string[]
+  /** Review aids (never published): what the two name rules removed. */
+  removedProtected: { host: string; terms: string[] }[]
+  removedKeywordFalseMatches: string[]
 }
 
 /** A gate failed. `details` holds extra lines for a report file (never secrets). */
@@ -126,7 +161,8 @@ export class GateError extends Error {
   }
 }
 
-export const sha256Hex = (data: Uint8Array | string): string => createHash('sha256').update(data).digest('hex')
+/** The header serial of starter.bin: never a release serial (FORMAT.md). */
+export const STARTER_SERIAL = 0
 
 /** Serial for a UTC date and a run number: 2026-11-01, run 1 → 2026110101. */
 export const serialFor = (date: Date, run: number): number => {
@@ -275,9 +311,14 @@ export const runBuild = (input: BuildInput): BuildOutput => {
 
   // 1. Sources, each checked for a format change.
   const perSource: SourceInfo[] = []
+  const sourceHosts: Set<string>[] = []
   const union = new Set<string>()
+  // Hosts listed by at least one source that is not keyword-matched.
+  const byOtherMethod = new Set<string>()
   for (const s of input.sources) {
     const { hosts, lines, skipped } = parseList(s.text)
+    sourceHosts.push(hosts)
+    if (!input.keywordMatchedSources.includes(s.id)) for (const h of hosts) byOtherMethod.add(h)
     if (skipped >= MIN_SKIPPED_LINES && skipped > MAX_SKIPPED_RATIO * lines) {
       throw new GateError(`source ${s.id}: ${skipped} of ${lines} lines unreadable (over ${MAX_SKIPPED_RATIO * 100}%); its format has probably changed`)
     }
@@ -297,6 +338,17 @@ export const runBuild = (input: BuildInput): BuildOutput => {
   const canaries = parseProbes(input.data.canaries, 'canaries')
   const negatives = parseProbes(input.data.negatives, 'negatives')
   if (canaries.length === 0) throw new GateError('canaries: at least one is required')
+  const asGate = <T>(fn: () => T): T => {
+    try {
+      return fn()
+    } catch (e) {
+      throw new GateError(e instanceof Error ? e.message : String(e))
+    }
+  }
+  const protectedRules = asGate(() => parseProtectedTerms(input.data.protectedTerms))
+  const reviewedProtected = asGate(() => parseReasonedHosts(input.data.reviewedProtected, 'reviewed-protected', normalizeDomainInput))
+  const keywordRules = asGate(() => parseKeywordRules(input.data.keywordFalseMatches, normalizeDomainInput))
+  const pending = parseHostRules(input.data.pendingReview, 'pending-review')
 
   for (const h of additions) {
     if (isPublicSuffix(psl, h)) throw new GateError(`additions: "${h}" is a public suffix`)
@@ -321,6 +373,39 @@ export const runBuild = (input: BuildInput): BuildOutput => {
       union.delete(h)
       publicSuffixesDropped++
     }
+  }
+
+  // 3b. Protected-name gate: a recovery, Christian or Islamic name is removed
+  //     unless a person reviewed it as adult (src/protected.ts).
+  const reviewedProtectedSet = new Set(reviewedProtected.keys())
+  const removedProtected: { host: string; terms: string[] }[] = []
+  for (const h of [...union]) {
+    const terms = protectedTermsOf(psl, protectedRules, h)
+    if (terms.length === 0 || coveredBy(reviewedProtectedSet, h)) continue
+    union.delete(h)
+    removedProtected.push({ host: h, terms })
+  }
+  removedProtected.sort((a, b) => (a.host < b.host ? -1 : 1))
+  for (const h of additions) {
+    if (!union.has(h) && removedProtected.some((r) => r.host === h)) {
+      throw new GateError(`additions: "${h}" has a protected name; review it into data/reviewed-protected.txt with a reason`)
+    }
+  }
+  for (const h of reviewedProtectedSet) {
+    if (protectedTermsOf(psl, protectedRules, h).length === 0) warnings.push(`reviewed-protected: "${h}" contains no protected term`)
+  }
+
+  // 3c. False keyword matches, for hosts only a keyword-matched source lists.
+  const additionSet = new Set(additions)
+  const removedKeyword: string[] = []
+  for (const h of [...union]) {
+    if (byOtherMethod.has(h) || additionSet.has(h) || !isKeywordFalseMatch(keywordRules, h)) continue
+    union.delete(h)
+    removedKeyword.push(h)
+  }
+  removedKeyword.sort()
+  for (const h of keywordRules.hosts) {
+    if (byOtherMethod.has(h)) warnings.push(`keyword-false-matches: "${h}" is also listed by another source, so this rule does not remove it; allowlist it instead`)
   }
 
   // 4. Allowlist (before the dedupe, see the top of this file).
@@ -359,7 +444,8 @@ export const runBuild = (input: BuildInput): BuildOutput => {
 
   // A burst of new popular entries suggests a broken or poisoned upstream: stop.
   const heldBefore = new Set([...(previousInfo?.heldBack.topSites ?? []), ...(previousInfo?.heldBack.topSiteSubdomains ?? [])])
-  const newHeld = [...heldTop, ...heldSub].filter((h) => !heldBefore.has(h))
+  // Entries in data/pending-review.txt were looked at and left undecided: they stay held back but are not news.
+  const newHeld = [...heldTop, ...heldSub].filter((h) => !heldBefore.has(h) && !ruleCovers(pending, h))
   if (newHeld.length > input.maxNewHeldBack) {
     throw new GateError(
       `${newHeld.length} new unreviewed popular entries (more than ${input.maxNewHeldBack}); an upstream list may be broken or poisoned. ` +
@@ -378,6 +464,58 @@ export const runBuild = (input: BuildInput): BuildOutput => {
       const before = previousInfo.sources.find((p) => p.id === s.id)
       if (before && s.hosts < MIN_SOURCE_RATIO * before.hosts) {
         throw new GateError(`source ${s.id} shrank from ${before.hosts} to ${s.hosts} hosts (more than ${Math.round((1 - MIN_SOURCE_RATIO) * 100)}%)`)
+      }
+    }
+    // Slow shrink: against the largest of the recent releases, not only the last one.
+    const recentMax = Math.max(...previousInfo.hostCountHistory)
+    if (finalHosts.size < MIN_TOTAL_RATIO * recentMax) {
+      throw new GateError(
+        `the list has ${finalHosts.size} hosts, more than ${Math.round((1 - MIN_TOTAL_RATIO) * 100)}% below the largest of the last ${previousInfo.hostCountHistory.length} releases (${recentMax})`,
+      )
+    }
+  }
+  if (!input.allowShrink && finalHosts.size < input.hostFloor) {
+    throw new GateError(`the list has ${finalHosts.size} hosts, below the floor of ${input.hostFloor} (config.ts MIN_HOST_FLOOR)`)
+  }
+
+  // 7b. Growth gates: sudden growth means a broken or hijacked upstream as surely as shrinkage.
+  let newRegistrableDomains: Record<string, number> | null = null
+  if (input.previous) {
+    const regCache = new Map<string, string>()
+    const reg = (h: string): string => {
+      let r = regCache.get(h)
+      if (r === undefined) {
+        r = registrableDomain(psl, h) ?? h
+        regCache.set(h, r)
+      }
+      return r
+    }
+    const previousRegs = new Set<string>()
+    for (const h of input.previous.hosts) previousRegs.add(reg(h))
+    newRegistrableDomains = {}
+    input.sources.forEach((src, i) => {
+      const fresh = new Set<string>()
+      for (const h of sourceHosts[i]) {
+        if (!listed.has(h)) continue // removed by the allowlist or a name rule: never published
+        const r = reg(h)
+        if (!previousRegs.has(r)) fresh.add(r)
+      }
+      newRegistrableDomains![src.id] = fresh.size
+    })
+    if (!input.allowGrowth) {
+      const growth = (pct: number): string => `more than ${Math.round(pct * 100)}%`
+      if (finalHosts.size > (1 + input.maxTotalGrowth) * previousInfo!.hostCount) {
+        throw new GateError(`the list grew from ${previousInfo!.hostCount} to ${finalHosts.size} hosts (${growth(input.maxTotalGrowth)}); check the sources, then re-run with allow_growth`)
+      }
+      for (const s of perSource) {
+        const before = previousInfo!.sources.find((p) => p.id === s.id)
+        if (before && s.hosts > (1 + input.maxSourceGrowth) * before.hosts) {
+          throw new GateError(`source ${s.id} grew from ${before.hosts} to ${s.hosts} hosts (${growth(input.maxSourceGrowth)}); check it, then re-run with allow_growth`)
+        }
+        const fresh = newRegistrableDomains[s.id]
+        if (fresh > input.maxNewRegistrableDomains) {
+          throw new GateError(`source ${s.id} adds ${fresh} registrable domains the previous release did not list (more than ${input.maxNewRegistrableDomains}); check it, then re-run with allow_growth`)
+        }
       }
     }
   }
@@ -429,8 +567,13 @@ export const runBuild = (input: BuildInput): BuildOutput => {
   if (starterSet.size >= finalHosts.size || [...starterSet].some((h) => !finalHosts.has(h))) {
     throw new GateError('starter list is not a strict subset of the full list')
   }
-  const starterList = compile(starterSet, [], input.serial)
+  // Serial 0: the starter list ships inside the app and must never be taken for a monthly release.
+  const starterList = compile(starterSet, [], STARTER_SERIAL)
   assertRoundTrip(starterList.bytes, starterSet, [], 'starter list')
+  const starterHeader = readHayaaListHeader(starterList.bytes)
+  if (!starterHeader || starterHeader.serial !== STARTER_SERIAL || starterHeader.hostCount !== starterSet.size || starterHeader.hasPaths) {
+    throw new GateError('starter list header does not match the build')
+  }
 
   // 11. Gzip, checked by an independent inflater.
   const gz = deterministicGzip(full.bytes)
@@ -456,6 +599,10 @@ export const runBuild = (input: BuildInput): BuildOutput => {
     serial: input.serial,
     hostCount: header.hostCount,
     pathCount: full.stats.paths,
+    // A reviewed shrink starts the history again; otherwise the latest releases, this one last.
+    hostCountHistory: input.allowShrink || !previousInfo
+      ? [header.hostCount]
+      : [...previousInfo.hostCountHistory, header.hostCount].slice(-input.shrinkHistory),
     sources: perSource,
     heldBack,
   }
@@ -480,8 +627,11 @@ export const runBuild = (input: BuildInput): BuildOutput => {
     files,
     starter,
     heldBack,
+    newHeldBack: newHeld,
     keptFromPrevious: [...keptTop, ...keptSub].sort(),
     topSiteSubdomainEntries: reviewAid,
+    removedProtected,
+    removedKeywordFalseMatches: removedKeyword,
     report: {
       serial: input.serial,
       previous: input.previous?.origin ?? null,
@@ -490,6 +640,8 @@ export const runBuild = (input: BuildInput): BuildOutput => {
         union: unionCount,
         additions: additions.length,
         publicSuffixesDropped,
+        protectedNamesRemoved: removedProtected.length,
+        keywordFalseMatchesRemoved: removedKeyword.length,
         allowlisted: allowlistedCount,
         finalHosts: header.hostCount,
         paths: full.stats.paths,
@@ -503,6 +655,7 @@ export const runBuild = (input: BuildInput): BuildOutput => {
         newHeldBack: newHeld.length,
         topSiteSubdomainEntries: reviewAid.length,
       },
+      newRegistrableDomains,
       files: fileReport,
       warnings,
     },

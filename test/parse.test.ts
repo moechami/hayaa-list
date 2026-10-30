@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import { normalizeDomainInput } from '../src/domains'

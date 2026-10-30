@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Bounded work per lookup and full validation, over hand-built files laid
 // out exactly as given (the writer never produces them). The same cases run
 // in the Hayaa app against its Kotlin reader, so both refuse the same files.

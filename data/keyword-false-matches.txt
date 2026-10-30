@@ -1,0 +1,125 @@
+# False keyword matches.
+#
+# The Block List Project (now frozen) built its porn list partly by matching
+# words such as "sex" inside domain names, which also caught Essex, Sussex,
+# the surname Sexton and "homes exteriors". These rules apply ONLY to hosts
+# that no other source lists (config.ts, KEYWORD_MATCHED_SOURCES): a host
+# another source lists was put there by a person or a different method and
+# is left alone.
+#
+# A host is removed when
+#   - it is named on a "host" line, or
+#   - it contains at least one "benign" word, and every "sexual" substring
+#     in it lies inside a benign word.
+# So "essexroofing.co.uk" is removed, but "essexescorts.co.uk" ("escort"
+# outside the benign word) and "essexy.com" (not a benign word) stay.
+#
+# Forms (patterns are JavaScript regular expressions, matched against the
+# whole lowercase host; no spaces, no "#"):
+#   benign <pattern>   a non-sexual word that contains a sexual-looking substring
+#   sexual <pattern>   a sexual-looking substring; the list is deliberately
+#                      generous (it includes "hot", "cam", "girl"), because
+#                      a pattern here only ever keeps an entry listed
+#   host <host>        one host, with the reason in the comment
+#
+# Reviewed 2026-10-30: the removed hosts were sampled by hand, judged by
+# name only (see the commit message for the counts).
+
+# --- Benign words ---
+# Essex only as a county: at the start, after "-" or ".", or after a place
+# word. "...es" + "sex" ("likessex", "couplessex") is never read as Essex.
+benign (?:^|[-.]|north|south|east|west|mid|new|the|of|in|for|and|herts|suffolk|kent|london|windsor)essex(?![eioy])  # English county
+benign sussex(?![eioy])        # English county
+benign wessex(?![eioy])        # English region
+benign middlesex(?![eioy])     # English county
+benign sexton(?!ight)          # surname and church office; not "sex tonight"
+benign sexterior               # "...s exterior" (homes exteriors, brothers exteriors)
+benign (?:business|access|glass|class|cross|compass|brass|grass|process|success|fitness|wellness|wireless|address)-?ex(?![eioy])  # "business express", "access exchange", "glass expert"
+benign gasexchange             # gas exchange
+benign adslaanbieders          # Dutch: ADSL providers
+benign gayrimenkul             # Turkish: real estate (emlak gayrimenkul)
+
+# --- Sexual-looking substrings (checked in this order) ---
+sexual domina
+sexual gangbang
+sexual glamour
+sexual grann
+sexual companion
+sexual bimbo
+sexual cruis
+sexual dungeon
+sexual 720p
+sexual 1080p
+sexual mistress
+sexual goddess
+sexual princess
+sexual actress
+sexual hostess
+sexual sex[eiostuy]
+sexual naught
+sexual fist
+sexual sissy
+sexual poz
+sexual scally
+sexual sex
+sexual porn
+sexual xxx
+sexual nude
+sexual naked
+sexual gay
+sexual lesb
+sexual adult
+sexual anal
+sexual fuck
+sexual cum
+sexual cock
+sexual dick
+sexual puss
+sexual tit
+sexual boob
+sexual slut
+sexual whore
+sexual escort
+sexual erot
+sexual fetish
+sexual bdsm
+sexual milf
+sexual hentai
+sexual nsfw
+sexual orgy
+sexual incest
+sexual cams
+sexual babe
+sexual teen
+sexual horny
+sexual kink
+sexual fap
+sexual strip
+sexual hot
+sexual girl
+sexual xx
+sexual nud
+sexual bitch
+sexual cunt
+sexual ass
+sexual butt
+sexual chat
+sexual date
+sexual dating
+sexual love
+sexual lust
+sexual wife
+sexual mature
+sexual bbw
+sexual amateur
+sexual swing
+sexual tube
+sexual vid
+sexual pic
+sexual cam
+
+# --- Single hosts that only The Block List Project lists ---
+host burkesvillechurchofchrist.com   # a church
+host northwoodsbaptistchurch.net     # a church
+host thirdavenueunitedchurch.com     # a church
+host adulted.about.com               # adult education articles

@@ -1,14 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Re-pinning sources.lock.json, without I/O of its own (the network is passed
 // in, so the tests run it offline). Fail-safe by design: one source that
-// disappears, or whose licence changes, keeps its previous pin and produces
-// a note for a person; the other sources still update and the release still
-// ships. Only the Tranco list, which the maintainer pins by hand in
-// src/config.ts, is fatal when it cannot be fetched.
+// disappears, whose licence changes, or whose repository is no longer the
+// same repository (another numeric id or name: renamed, redirected, or
+// deleted and recreated), keeps its previous pin and produces a note for a
+// person; the other sources still update and the release still ships. Only
+// the Tranco list, which the maintainer pins by hand in src/config.ts, is
+// fatal when it cannot be fetched.
 
 import { createHash } from 'node:crypto'
 import { rawUrl, trancoUrl, type Lock, type PinnedSource } from './lock'
 
+export type RepoInfo = { id: number; fullName: string }
+
 export type LockNet = {
+  /** GitHub's id and canonical owner/name for `repo` (GET /repos/{owner}/{repo}); throws when it is gone. */
+  repoInfo(repo: string): Promise<RepoInfo>
   /** Newest commit SHA of `branch`; throws when the repository or branch is gone. */
   latestCommit(repo: string, branch: string): Promise<string>
   /** Bytes at `url`; throws on any non-2xx answer. */
@@ -33,11 +41,19 @@ const pinFields = (s: PinnedSource): Pick<PinnedSource, 'commit' | 'url' | 'sha2
   licenseSha256: s.licenseSha256,
 })
 
+/** Null when `info` is still the pinned repository, else what changed. */
+export const repoIdentityProblem = (repo: string, repoId: number, info: RepoInfo): string | null => {
+  if (info.id !== repoId) return `repository id is now ${info.id}, pinned ${repoId} (deleted and recreated, or replaced)`
+  if (info.fullName.toLowerCase() !== repo.toLowerCase()) return `repository is now ${info.fullName}, pinned ${repo} (renamed or redirected)`
+  return null
+}
+
 /**
  * Re-pin every non-frozen source and the Public Suffix List to the newest
  * commit, and the Tranco list to `trancoListId`. `fallback` is the lock of
  * the previous release: when a source cannot be re-pinned, its pin there is
- * kept (else the current one).
+ * kept (else the current one). Repository ids come from `current` (the lock
+ * on main, reviewed by a person), never from the fallback.
  */
 export const updateLock = async (
   current: Lock,
@@ -53,7 +69,18 @@ export const updateLock = async (
       log.push(`${s.id}: frozen at ${s.commit.slice(0, 12)}, not re-pinned`)
       continue
     }
+    const prev = opts.fallback?.sources.find((p) => p.id === s.id && p.repo === s.repo && p.path === s.path)
     try {
+      const identity = repoIdentityProblem(s.repo, s.repoId, await net.repoInfo(s.repo))
+      if (identity) {
+        if (prev) Object.assign(s, pinFields(prev))
+        notes.push(
+          `${s.id}: ${identity}. Kept the pin ${s.commit.slice(0, 12)}. ` +
+            'Check who now owns the repository before changing repoId in sources.lock.json by hand.',
+        )
+        log.push(`${s.id}: kept ${s.commit.slice(0, 12)} (repository identity changed)`)
+        continue
+      }
       const commit = await net.latestCommit(s.repo, s.branch)
       if (commit === s.commit) {
         log.push(`${s.id}: ${commit.slice(0, 12)} (unchanged)`)
@@ -79,7 +106,6 @@ export const updateLock = async (
       Object.assign(s, { commit, url: rawUrl(s.repo, commit, s.path), sha256: sha256(bytes), licenseSha256 })
       log.push(`${s.id}: ${commit.slice(0, 12)} ${bytes.length} bytes`)
     } catch (e) {
-      const prev = opts.fallback?.sources.find((p) => p.id === s.id && p.repo === s.repo && p.path === s.path)
       if (prev) Object.assign(s, pinFields(prev))
       notes.push(
         `${s.id}: upstream unavailable (${message(e)}). Kept the pin of the previous release, ${s.commit.slice(0, 12)}. ` +
@@ -90,18 +116,25 @@ export const updateLock = async (
   }
 
   const p = lock.publicSuffixList
-  try {
-    const commit = await net.latestCommit(p.repo, p.branch)
-    if (commit !== p.commit) {
-      const url = rawUrl(p.repo, commit, p.path)
-      Object.assign(p, { commit, url, sha256: sha256(await net.get(url)) })
-    }
-    log.push(`public suffix list: ${p.commit.slice(0, 12)}`)
-  } catch (e) {
+  const keepPsl = (why: string, note: string): void => {
     const prev = opts.fallback?.publicSuffixList
     if (prev) Object.assign(p, { commit: prev.commit, url: prev.url, sha256: prev.sha256 })
-    notes.push(`public suffix list: upstream unavailable (${message(e)}). Kept ${p.commit.slice(0, 12)}.`)
-    log.push(`public suffix list: kept ${p.commit.slice(0, 12)} (upstream unavailable)`)
+    notes.push(`public suffix list: ${note}. Kept ${p.commit.slice(0, 12)}.`)
+    log.push(`public suffix list: kept ${p.commit.slice(0, 12)} (${why})`)
+  }
+  try {
+    const identity = repoIdentityProblem(p.repo, p.repoId, await net.repoInfo(p.repo))
+    if (identity) keepPsl('repository identity changed', identity)
+    else {
+      const commit = await net.latestCommit(p.repo, p.branch)
+      if (commit !== p.commit) {
+        const url = rawUrl(p.repo, commit, p.path)
+        Object.assign(p, { commit, url, sha256: sha256(await net.get(url)) })
+      }
+      log.push(`public suffix list: ${p.commit.slice(0, 12)}`)
+    }
+  } catch (e) {
+    keepPsl('upstream unavailable', `upstream unavailable (${message(e)})`)
   }
 
   // Tranco: pinned by hand in src/config.ts. A list ID never changes content,

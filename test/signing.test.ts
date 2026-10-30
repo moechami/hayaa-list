@@ -1,4 +1,7 @@
-// Manifest signing and the full release check. Keys are generated per run
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Release signing (the manifest, build-info.json and the lock), the local
+// signing guard, and the full release check. Keys are generated per run
 // and never written into the repository.
 
 import assert from 'node:assert/strict'
@@ -10,7 +13,8 @@ import { join } from 'node:path'
 import { after, describe, test } from 'node:test'
 import { runBuild } from '../src/pipeline'
 import { checkRelease } from '../src/release-check'
-import { publicKeyPemOf, signManifest, verifyManifest } from '../src/signing'
+import { productionKeyProblem, SIGNED_FILES } from '../scripts/sign'
+import { publicKeyPemOf, samePublicKey, signManifest, verifyManifest } from '../src/signing'
 import { bytesOf } from './helpers'
 import { baseInput } from './synthetic'
 
@@ -105,5 +109,62 @@ describe('release check (what the phone verifies)', () => {
     const only = mkdtempSync(join(tmp, 'only-'))
     for (const name of ['manifest.json', 'manifest.json.sig']) copyFileSync(join(dir, name), join(only, name))
     assert.deepEqual(checkRelease(only, k.pub), { ok: true, serial: 2026110101, keyId: 'k1', checkedFile: false })
+  })
+})
+
+describe('local signing (scripts/sign.ts)', () => {
+  const release = keyPair()
+  const throwaway = keyPair()
+  const releaseKeys = new Map([['k1', release.pub]])
+
+  test('refuses the release key unless forced; a throwaway key is fine', () => {
+    assert.match(productionKeyProblem(release.priv, releaseKeys, false)!, /this is the release key "k1"/)
+    assert.equal(productionKeyProblem(release.priv, releaseKeys, true), null)
+    assert.equal(productionKeyProblem(throwaway.priv, releaseKeys, false), null)
+    assert.equal(productionKeyProblem(throwaway.priv, new Map(), false), null)
+  })
+
+  test('public keys compare by content, not by PEM text', () => {
+    assert.ok(samePublicKey(release.pub, release.pub.replace(/\n/g, '\r\n')))
+    assert.ok(!samePublicKey(release.pub, throwaway.pub))
+    assert.ok(!samePublicKey(release.pub, 'not a key'))
+  })
+
+  test('signs the manifest, build-info.json and sources.lock.json', () => {
+    assert.deepEqual([...SIGNED_FILES], ['manifest.json', 'build-info.json', 'sources.lock.json'])
+  })
+})
+
+describe('npm run verify -- --release (the publish job)', () => {
+  const k = keyPair()
+  const out = runBuild(baseInput())
+  const fresh = (signExtra: boolean): string => {
+    const d = mkdtempSync(join(tmp, 'verify-'))
+    for (const [name, bytes] of out.files) writeFileSync(join(d, name), bytes)
+    writeFileSync(join(d, 'sources.lock.json'), '{}\n')
+    writeFileSync(join(d, 'k.pub.pem'), k.pub)
+    const names = signExtra ? SIGNED_FILES : (['manifest.json'] as const)
+    for (const n of names) writeFileSync(join(d, `${n}.sig`), signManifest(readFileSync(join(d, n)), k.priv))
+    return d
+  }
+  const verify = (dir: string, ...extra: string[]): { status: number | null; out: string } => {
+    const r = spawnSync(process.execPath, ['--import', 'tsx', join(__dirname, '..', 'scripts', 'verify.ts'), '--dir', dir, '--pub', join(dir, 'k.pub.pem'), ...extra], { encoding: 'utf8' })
+    return { status: r.status, out: `${r.stdout}${r.stderr}` }
+  }
+
+  test('passes with every file signed', () => {
+    const r = verify(fresh(true), '--release')
+    assert.equal(r.status, 0, r.out)
+  })
+
+  test('fails when build-info.json or the lock is unsigned or tampered with', () => {
+    const unsigned = verify(fresh(false), '--release')
+    assert.equal(unsigned.status, 1)
+    assert.match(unsigned.out, /build-info\.json\.sig is missing/)
+    const d = fresh(true)
+    writeFileSync(join(d, 'sources.lock.json'), '{"x":1}\n')
+    const tampered = verify(d)
+    assert.equal(tampered.status, 1)
+    assert.match(tampered.out, /sources\.lock\.json\.sig does not verify/)
   })
 })

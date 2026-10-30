@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // A small, fully local build input for the pipeline tests: no network.
 
 import type { BuildInput } from '../src/pipeline'
@@ -49,6 +51,10 @@ export const baseInput = (): BuildInput => ({
     starterBrands: '',
     canaries: 'adult-one.com\nreddit.com /r/adult/x\n',
     negatives: 'google.com\nplatform.com\nreddit.com /r/other\n',
+    protectedTerms: 'contains quran\ncontains recovery\nlabel dua\ncontains anonymous with porn sex\n',
+    reviewedProtected: '',
+    keywordFalseMatches: 'benign essex\nsexual porn\nsexual sex\nhost oddname.com  # not adult\n',
+    pendingReview: '',
   },
   psl: SYNTHETIC_PSL,
   tranco: ['1,google.com', '2,adult-cdn.com', '3,adult-two.com', '4,platform.com', '5,adult-one.com', '6,unranked-gate.com'].join('\r\n'),
@@ -61,4 +67,11 @@ export const baseInput = (): BuildInput => ({
   previous: null,
   maxNewHeldBack: 25,
   allowShrink: false,
+  allowGrowth: false,
+  keywordMatchedSources: [],
+  shrinkHistory: 6,
+  hostFloor: 0,
+  maxTotalGrowth: 0.15,
+  maxSourceGrowth: 0.3,
+  maxNewRegistrableDomains: 50_000,
 })

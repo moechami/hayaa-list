@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // The punycode package (imported as 'punycode/' so Node's deprecated
 // built-in module of the same name is never picked up).
 declare module 'punycode/' {

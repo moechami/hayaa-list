@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // The release manifest (manifest.json), the document the Hayaa app verifies
 // before it downloads a list. validateManifest() applies the same rules as
 // the app's parser (HayaaListManifest.kt): a manifest it refuses here would

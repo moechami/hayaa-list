@@ -1,23 +1,40 @@
-/* Sign a built manifest.
+// SPDX-License-Identifier: GPL-3.0-or-later
+/* Sign a built release folder, for a LOCAL TRIAL with a throwaway key.
  *
- *   LIST_SIGNING_KEY="$(cat key.pem)" npm run sign [-- --dir dist]
+ *   LIST_SIGNING_KEY="$(cat throwaway.pem)" npm run sign [-- --dir dist] [--force]
  *
- * Reads the EC P-256 private key (PEM) from the LIST_SIGNING_KEY environment
- * variable, never from a file in the repository, and writes
- * <dir>/manifest.json.sig: a DER ECDSA signature over SHA-256 of the exact
- * bytes of <dir>/manifest.json. The same result as
+ * Reads an EC P-256 private key (PEM) from the LIST_SIGNING_KEY environment
+ * variable, never from a file in the repository, and writes a DER ECDSA
+ * signature over SHA-256 of the exact bytes of each signed file in <dir>:
+ * manifest.json.sig, build-info.json.sig and, when the folder has one,
+ * sources.lock.json.sig. The same result as
  *   openssl dgst -sha256 -sign key.pem -out manifest.json.sig manifest.json
  *
- * FOR LOCAL USE ONLY (a trial release with a throwaway key). The release
- * workflow does not use this script: it signs with OpenSSL, reading the key
- * from the environment through process substitution so it never touches the
- * disk, then verifies with both OpenSSL and the Node verifier. Never put the
- * production key in a file or a shell history to run this.
+ * It refuses a key whose public half is one of the release keys in keys/
+ * (the production key belongs to the release workflow only), unless
+ * --force is given. Releases are signed by the workflow's sign job with
+ * OpenSSL; see keys/README.md.
  */
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { signManifest } from '../src/signing'
+import { readPublicKeys } from '../src/previous'
+import { publicKeyPemOf, samePublicKey, signManifest } from '../src/signing'
+
+/** The files a release signs, in order; the last one is optional. */
+export const SIGNED_FILES = ['manifest.json', 'build-info.json', 'sources.lock.json'] as const
+
+/** Null when `privatePem` may sign locally, else why not. */
+export const productionKeyProblem = (privatePem: string, releaseKeys: ReadonlyMap<string, string>, force: boolean): string | null => {
+  if (force) return null
+  const pub = publicKeyPemOf(privatePem)
+  for (const [keyId, pem] of releaseKeys) {
+    if (samePublicKey(pub, pem)) {
+      return `this is the release key "${keyId}" (keys/${keyId}.pub.pem); releases are signed by the workflow only. Use a throwaway key, or --force if you really mean it`
+    }
+  }
+  return null
+}
 
 const main = (): void => {
   console.warn('warning: local signing only; releases are signed by the workflow with OpenSSL (see keys/README.md)')
@@ -25,15 +42,25 @@ const main = (): void => {
   const dir = resolve(i >= 0 ? (process.argv[i + 1] ?? '') : join(__dirname, '..', 'dist'))
   const pem = process.env.LIST_SIGNING_KEY
   if (!pem || !pem.includes('PRIVATE KEY')) throw new Error('LIST_SIGNING_KEY must hold a PEM private key')
-  const manifest = new Uint8Array(readFileSync(join(dir, 'manifest.json')))
-  const sig = signManifest(manifest, pem)
-  writeFileSync(join(dir, 'manifest.json.sig'), sig)
-  console.log(`signed ${join(dir, 'manifest.json')} (${sig.length}-byte DER signature)`)
+  const problem = productionKeyProblem(pem, readPublicKeys(join(__dirname, '..', 'keys')), process.argv.includes('--force'))
+  if (problem) throw new Error(`refused: ${problem}`)
+  for (const name of SIGNED_FILES) {
+    const path = join(dir, name)
+    if (!existsSync(path)) {
+      if (name === 'sources.lock.json') continue
+      throw new Error(`${path} is missing`)
+    }
+    const sig = signManifest(new Uint8Array(readFileSync(path)), pem)
+    writeFileSync(`${path}.sig`, sig)
+    console.log(`signed ${path} (${sig.length}-byte DER signature)`)
+  }
 }
 
-try {
-  main()
-} catch (e) {
-  console.error(e instanceof Error ? e.message : e)
-  process.exitCode = 1
+if (require.main === module) {
+  try {
+    main()
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : e)
+    process.exitCode = 1
+  }
 }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Checks a release folder the way the Hayaa app checks a download, in the
 // same order: signature over the exact manifest bytes (before any JSON is
 // read), the manifest's schema, the compressed and inflated sizes and

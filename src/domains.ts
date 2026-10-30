@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Host normalization, identical to the Hayaa app's normalizeDomainInput
 // (lib/blocker/domains.ts), which mirrors DomainMatcher.normalize in Kotlin.
 // List entries and user-typed domains go through ONE definition of "a host",

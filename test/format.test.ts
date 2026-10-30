@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Format v1/v2 writer and reader, against the shared fixtures. The vectors
 // are the same ones the Hayaa app asserts in its TypeScript and Kotlin tests
 // over the same committed files, which is what holds this writer to

@@ -1,0 +1,64 @@
+# Protected terms: words of recovery, faith and Islam.
+#
+# A listed host whose name contains one of these is REMOVED from the list,
+# unless data/reviewed-protected.txt names it with a reason: a person looked
+# at it and found it genuinely adult. Blocking a recovery or religious site
+# is worse than missing an adult one, because the app's users cannot
+# override the Blocker. The name is every label except the public suffix
+# ("quran.example.co.uk" → quran, example), and hyphens inside a label are
+# ignored ("quit-porn" reads as "quitporn").
+#
+# Forms:
+#   contains <term>                  some label contains the term
+#   label <term>                     some label is exactly the term
+#   contains <term> with <a> <b>...  the name contains the term AND one of the others
+#
+# Lowercase letters and digits only. A longer word that contains a term is
+# covered by it ("addict" covers "addiction", "counsel" covers "counseling"
+# and "counsellor", "muslim" covers "muslimah", "islam" covers "islamic").
+
+# --- Recovery ---
+contains recovery
+contains addict
+contains sobriety
+contains sober
+contains anonymous with porn sex addict
+contains quitporn
+contains stopporn
+contains nofap
+contains rebootnation
+contains yourbrainonporn
+contains fightthenewdrug
+contains covenanteyes
+contains exodus
+contains therapy
+contains therapist
+contains counsel
+
+# --- Christianity ---
+contains church
+contains bible
+contains biblical
+contains christ
+contains gospel
+contains ministry
+contains ministries
+
+# --- Islam ---
+contains muslim
+contains islam
+contains quran
+contains koran
+contains halal
+contains masjid
+contains mosque
+contains deen
+contains imam
+contains allah
+contains sunnah
+contains hadith
+contains ummah
+contains ramadan
+contains hijab
+contains salah
+label dua

@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // The monthly gates added on top of the basic build: review gates that hold
 // back new unreviewed popular entries (and fail on a burst of them), shrink
-// gates against the previous release, the source format gate, the starter
-// list's size and per-brand cap, and build-info.json.
+// and growth gates against the previous release, the source format gate, the
+// starter list's size and per-brand cap, and build-info.json.
 
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
@@ -30,7 +32,8 @@ const gate = (fn: () => unknown, message: RegExp): GateError => {
 const hostsOf = (out: ReturnType<typeof runBuild>): string[] => decodeHayaaList(out.files.get('hayaa-list-2026110101.bin')!).hosts.sort()
 
 const info = (patch: Partial<BuildInfo> = {}): BuildInfo => ({
-  buildInfoVersion: 1,
+  buildInfoVersion: 2,
+  hostCountHistory: [patch.hostCount ?? 6],
   serial: 2026100101,
   hostCount: 6,
   pathCount: 1,
@@ -42,7 +45,10 @@ const info = (patch: Partial<BuildInfo> = {}): BuildInfo => ({
   ...patch,
 })
 
-const previous = (hosts: string[], i: BuildInfo | null = null): PreviousRelease => ({ hosts: new Set(hosts), info: i, origin: 'test' })
+const previous = (hosts: string[], i: BuildInfo = info()): PreviousRelease => ({ hosts: new Set(hosts), info: i, origin: 'test' })
+
+// For the hold-back tests, which are about review state, not counts.
+const lenient = { allowShrink: true, allowGrowth: true }
 
 // Reviewed only adult-one.com: adult-two.com and adult-cdn.com are unreviewed top sites.
 const partlyReviewed = { reviewedTopHits: 'adult-one.com\n' }
@@ -59,14 +65,14 @@ describe('review gate: top sites', () => {
   })
 
   test('an unreviewed top site the previous release listed stays listed', () => {
-    const out = build({ ...smallStarter, previous: previous(['adult-two.com']) }, partlyReviewed)
+    const out = build({ ...smallStarter, ...lenient, previous: previous(['adult-two.com']) }, partlyReviewed)
     assert.deepEqual(out.heldBack.topSites, ['adult-cdn.com'])
     assert.deepEqual(out.keptFromPrevious, ['adult-two.com'])
     assert.ok(hostsOf(out).includes('adult-two.com'))
   })
 
   test('kept when the previous release blocked it through a parent too', () => {
-    const out = build({ ...smallStarter, previous: previous(['adult-two.com', 'adult-cdn.com']) }, partlyReviewed)
+    const out = build({ ...smallStarter, ...lenient, previous: previous(['adult-two.com', 'adult-cdn.com']) }, partlyReviewed)
     assert.deepEqual(out.heldBack.topSites, [])
   })
 
@@ -77,7 +83,7 @@ describe('review gate: top sites', () => {
 
   test('entries already held back by the previous release are not new: they stay held, the build passes', () => {
     const prev = previous([], info({ heldBack: { topSites: ['adult-cdn.com', 'adult-two.com'], topSiteSubdomains: [] } }))
-    const out = build({ ...smallStarter, maxNewHeldBack: 0, previous: prev, allowShrink: true }, partlyReviewed)
+    const out = build({ ...smallStarter, ...lenient, maxNewHeldBack: 0, previous: prev }, partlyReviewed)
     assert.deepEqual(out.heldBack.topSites, ['adult-cdn.com', 'adult-two.com'])
     assert.equal(out.report.counts.newHeldBack, 0)
   })
@@ -85,7 +91,7 @@ describe('review gate: top sites', () => {
   test('holding a site back never unblocks a host under it that the previous release blocked', () => {
     const input = baseInput()
     input.sources = [...input.sources, { id: 'extra', text: 'old.adult-two.com\n' }]
-    const out = runBuild({ ...input, ...smallStarter, previous: previous(['old.adult-two.com']), data: { ...input.data, ...partlyReviewed } })
+    const out = runBuild({ ...input, ...smallStarter, ...lenient, previous: previous(['old.adult-two.com']), data: { ...input.data, ...partlyReviewed } })
     const full = out.files.get('hayaa-list-2026110101.bin')!
     assert.equal(hayaaListMatches(full, 'adult-two.com'), false)
     assert.equal(hayaaListMatches(full, 'old.adult-two.com'), true)
@@ -100,7 +106,7 @@ describe('review gate: subdomains of the most popular sites', () => {
   })
 
   test('the previous release listed it: it stays', () => {
-    const out = build({ previous: previous(['sub.platform.com']) }, { reviewedTopSiteSubdomains: '' })
+    const out = build({ ...lenient, previous: previous(['sub.platform.com']) }, { reviewedTopSiteSubdomains: '' })
     assert.deepEqual(out.heldBack.topSiteSubdomains, [])
     assert.deepEqual(out.keptFromPrevious, ['sub.platform.com'])
   })
@@ -151,8 +157,68 @@ describe('shrink gates against the previous release', () => {
     assert.doesNotThrow(() => build({ allowShrink: true, previous: previous([], info({ hostCount: 1000 })) }))
   })
 
-  test('no build-info.json in the previous release: skipped', () => {
-    assert.doesNotThrow(() => build({ previous: previous([]) }))
+  test('slow shrink: compared with the largest of the recent releases, not only the last', () => {
+    gate(() => build({ previous: previous([], info({ hostCount: 6, hostCountHistory: [8, 7, 6] })) }), /more than 10% below the largest of the last 3 releases \(8\)/)
+    assert.doesNotThrow(() => build({ previous: previous([], info({ hostCount: 6, hostCountHistory: [6, 6] })) }))
+  })
+
+  test('the history in build-info.json keeps the last shrinkHistory counts, this release last', () => {
+    const out = build({ shrinkHistory: 3, previous: previous([], info({ hostCount: 6, hostCountHistory: [6, 6, 6] })) })
+    const parsed = parseBuildInfo(new TextDecoder().decode(out.files.get('build-info.json')))
+    assert.deepEqual(parsed.hostCountHistory, [6, 6, 6])
+    const first = parseBuildInfo(new TextDecoder().decode(build().files.get('build-info.json')))
+    assert.deepEqual(first.hostCountHistory, [6])
+  })
+
+  test('a reviewed shrink (allowShrink) restarts the history', () => {
+    const out = build({ allowShrink: true, previous: previous([], info({ hostCount: 100, hostCountHistory: [100, 100] })) })
+    assert.deepEqual(parseBuildInfo(new TextDecoder().decode(out.files.get('build-info.json'))).hostCountHistory, [6])
+  })
+
+  test('an absolute floor, with or without a previous release; allowShrink skips it', () => {
+    gate(() => build({ hostFloor: 7 }), /6 hosts, below the floor of 7/)
+    assert.doesNotThrow(() => build({ hostFloor: 7, allowShrink: true }))
+    assert.doesNotThrow(() => build({ hostFloor: 6 }))
+  })
+})
+
+describe('growth gates against the previous release', () => {
+  test('a list more than 15% larger fails, naming the override', () => {
+    gate(() => build({ previous: previous([], info({ hostCount: 5 })) }), /grew from 5 to 6 hosts \(more than 15%\); check the sources, then re-run with allow_growth/)
+    assert.doesNotThrow(() => build({ previous: previous([], info({ hostCount: 6 })) }))
+  })
+
+  test('a source more than 30% larger fails', () => {
+    const prev = info()
+    prev.sources[0] = { ...prev.sources[0], hosts: 5 }
+    gate(() => build({ previous: previous([], prev) }), /source hosts-format grew from 5 to 7 hosts \(more than 30%\)/)
+  })
+
+  test('a source adding too many registrable domains the previous release did not list fails', () => {
+    // New against the previous list: someone.blogspot.com from the first source; adult-three.net, platform.com (sub.platform.com) and adult-cdn.com from the second.
+    gate(() => build({ maxNewRegistrableDomains: 2, previous: previous(['adult-one.com', 'adult-two.com']) }), /source plain-format adds 3 registrable domains the previous release did not list \(more than 2\)/)
+    const out = build({ maxNewRegistrableDomains: 3, previous: previous(['adult-one.com', 'adult-two.com']) })
+    assert.deepEqual(out.report.newRegistrableDomains, { 'hosts-format': 1, 'plain-format': 3 })
+  })
+
+  test('allowGrowth skips them; without a previous release there is nothing to compare', () => {
+    assert.doesNotThrow(() => build({ allowGrowth: true, maxNewRegistrableDomains: 0, previous: previous([], info({ hostCount: 1 })) }))
+    assert.equal(build().report.newRegistrableDomains, null)
+  })
+})
+
+describe('pending review', () => {
+  test('pending entries stay held back but are not news, so the burst limit ignores them', () => {
+    gate(() => build({ ...smallStarter, maxNewHeldBack: 1 }, partlyReviewed), /2 new unreviewed popular entries/)
+    const out = build({ ...smallStarter, maxNewHeldBack: 1 }, { ...partlyReviewed, pendingReview: 'adult-cdn.com  # undecided\n' })
+    assert.deepEqual(out.heldBack.topSites, ['adult-cdn.com', 'adult-two.com'])
+    assert.deepEqual(out.newHeldBack, ['adult-two.com'])
+  })
+
+  test('a "*." rule covers a whole platform', () => {
+    const out = build({ maxNewHeldBack: 0 }, { reviewedTopSiteSubdomains: '', pendingReview: '*.platform.com\n' })
+    assert.deepEqual(out.heldBack.topSiteSubdomains, ['sub.platform.com'])
+    assert.deepEqual(out.newHeldBack, [])
   })
 })
 
@@ -251,7 +317,7 @@ describe('build-info.json', () => {
     assert.deepEqual(Object.keys(m), ['format', 'serial', 'keyId', 'file', 'hostCount', 'canaries', 'negatives'])
   })
 
-  test('a build compared against itself gives the same bytes (idempotent hold-back)', () => {
+  test('a build compared against itself gives the same list (idempotent hold-back); only the history grows', () => {
     const first = build(smallStarter, partlyReviewed)
     const text = new TextDecoder().decode(first.files.get('hayaa-list-2026110101.txt'))
     const prev: PreviousRelease = {
@@ -260,6 +326,7 @@ describe('build-info.json', () => {
       origin: 'first',
     }
     const second = build({ ...smallStarter, previous: prev, maxNewHeldBack: 0 }, partlyReviewed)
-    for (const [name, bytes] of first.files) assert.deepEqual(second.files.get(name), bytes, name)
+    for (const [name, bytes] of first.files) if (name !== 'build-info.json') assert.deepEqual(second.files.get(name), bytes, name)
+    assert.deepEqual(parseBuildInfo(new TextDecoder().decode(second.files.get('build-info.json'))).hostCountHistory, [4, 4])
   })
 })

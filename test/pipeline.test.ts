@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // The build gates, end to end over a local input, plus reproducibility.
 
 import assert from 'node:assert/strict'
@@ -5,7 +7,7 @@ import { describe, test } from 'node:test'
 import { decodeHayaaList, hayaaListMatches, readHayaaListHeader, validateHayaaList } from '../src/format'
 import { gunzip } from '../src/gzip'
 import { validateManifest } from '../src/manifest'
-import { GateError, runBuild, serialFor, sha256Hex, type BuildInput } from '../src/pipeline'
+import { GateError, runBuild, serialFor, sha256Hex, STARTER_SERIAL, type BuildInput } from '../src/pipeline'
 import { baseInput } from './synthetic'
 
 const withData = (patch: Partial<BuildInput['data']>, extra: Partial<BuildInput> = {}): BuildInput => {
@@ -86,11 +88,14 @@ describe('a passing build', () => {
     assert.deepEqual(m.negatives, [{ host: 'google.com' }, { host: 'platform.com' }, { host: 'reddit.com', path: '/r/other' }])
   })
 
-  test('starter list: popular registrable entries, exclusions skipped, extras added, strict subset, same serial', () => {
+  test('starter list: popular registrable entries, exclusions skipped, extras added, strict subset, header serial 0', () => {
     assert.deepEqual(out.starter, ['adult-two.com', 'adult-one.com', 'adult-three.net'])
     const starter = out.files.get('starter.bin')!
     assert.equal(validateHayaaList(starter), null)
-    assert.equal(readHayaaListHeader(starter)!.serial, 2026110101)
+    // Never a release serial, so the app can never take the bundled starter list for a monthly release.
+    assert.equal(STARTER_SERIAL, 0)
+    assert.equal(readHayaaListHeader(starter)!.serial, 0)
+    assert.equal(readHayaaListHeader(starter)!.hasPaths, false)
     const hosts = decodeHayaaList(starter).hosts
     assert.ok(hosts.every((h) => decoded.hosts.includes(h)))
     assert.ok(hosts.length < decoded.hosts.length)

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Public Suffix List (https://publicsuffix.org) handling, used at build time
 // only. Both sections (ICANN and private) count: "co.uk" and "blogspot.com"
 // are both suffixes under which unrelated people register their own sites,

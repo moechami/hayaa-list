@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Deterministic gzip. pako is a pure JavaScript port of zlib, so the same
 // input gives the same compressed bytes on every machine and Node version
 // (Node's own zlib can differ between builds and CPUs, and writes an

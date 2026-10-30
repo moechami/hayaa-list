@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Every field and cap the app's manifest parser (HayaaListManifest.kt)
 // enforces. A manifest validateManifest() refuses would be refused on every
 // phone, so the build checks it before publishing.

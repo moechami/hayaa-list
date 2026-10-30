@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Source-list parsing and normalization. Pure functions, no I/O.
 //
 // Entries are kept at the granularity the source lists use (one host per

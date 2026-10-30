@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 /* The serial about to be released must be newer than every existing release.
  *
  *   npm run check-serial -- --repo owner/name --serial 2026110101

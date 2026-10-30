@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // The shared cross-language fixture, identical to the Hayaa app's
 // (tools/blocklist-build/build.ts there). The committed files in
 // test/fixtures/ are copies of the app's src/test/resources/ fixtures, which

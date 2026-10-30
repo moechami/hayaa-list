@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 /* Re-pin the inputs in sources.lock.json:
  *
  *   npm run update-lock
@@ -8,8 +9,9 @@
  * (raw URL at that commit, SHA-256 of the file), and so does the Public
  * Suffix List. The Tranco list moves only to the ID set in src/config.ts.
  *
- * Fail-safe: a source whose repository or file is gone, or whose licence
- * file changed, keeps its previous pin (from --fallback-lock, the lock of the
+ * Fail-safe: a source whose repository or file is gone, whose licence file
+ * changed, or whose repository is no longer the pinned one (another numeric
+ * id or name), keeps its previous pin (from --fallback-lock, the lock of the
  * previous release, when given) and a line is written to --notes; the job
  * opens an issue from it and still releases. Set GITHUB_TOKEN to avoid the
  * GitHub API's anonymous rate limit.
@@ -35,6 +37,14 @@ const githubHeaders = (): Record<string, string> => {
 }
 
 const net: LockNet = {
+  repoInfo: async (repo) => {
+    const body = JSON.parse(new TextDecoder().decode(await httpGet(`https://api.github.com/repos/${repo}`, githubHeaders()))) as {
+      id?: unknown
+      full_name?: unknown
+    }
+    if (typeof body.id !== 'number' || typeof body.full_name !== 'string') throw new Error(`${repo}: no id in the API answer`)
+    return { id: body.id, fullName: body.full_name }
+  },
   latestCommit: async (repo, branch) => {
     const body = JSON.parse(new TextDecoder().decode(await httpGet(`https://api.github.com/repos/${repo}/commits/${branch}`, githubHeaders()))) as {
       sha?: unknown
