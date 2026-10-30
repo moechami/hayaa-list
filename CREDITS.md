@@ -6,10 +6,12 @@ when its licence allows the list to be redistributed under the GNU General
 Public License, version 3. The evidence for each licence was read from the
 source itself; the commit or page it was read from is given.
 
-The combined list is distributed under the GNU General Public License,
-version 3 or (at your option) any later version (see `LICENSE`). The two
-GPL sources publish the GPL version 3 text without naming a version
-restriction.
+The combined list (every file attached to a release) is distributed under
+the GNU General Public License, **version 3 only** (`GPL-3.0-only`; see
+`LICENSE`). The two GPL sources, HaGeZi and oisd, publish the version 3
+text without an "or later" grant, so the combined list cannot offer later
+versions. The code of this repository is separately licensed
+`GPL-3.0-or-later` (see README.md).
 
 ## Sources included
 
@@ -34,7 +36,8 @@ restriction.
 - File: `extensions/porn/clefspeare13/hosts` in https://github.com/StevenBlack/hosts
 - Licence: MIT
 - Evidence, at commit `11550239d5714d60b62be8796446ecba84a1bfb2`:
-  - `extensions/porn/clefspeare13/update.json`: `"license": "MIT"`.
+  - `extensions/porn/clefspeare13/update.json`: `"license": "MIT"` (the
+    monthly job checks this field at every new commit).
   - The file's own header: "License: MIT
     (https://github.com/Clefspeare13/pornhosts/blob/master/LICENSE)".
   - The repository's `license.txt`: "The MIT License (MIT) / Copyright ©
@@ -51,8 +54,10 @@ restriction.
 - Evidence:
   - `extensions/porn/bigdargon/update.json` at commit
     `11550239d5714d60b62be8796446ecba84a1bfb2`: `"license": "MIT"`.
-  - `LICENSE` of bigdargon/hostsVN: "MIT License / Copyright (c) 2026
-    BigDargon". Full notice below.
+  - `LICENSE` of bigdargon/hostsVN at commit
+    `ccda2647ec884fad18ffcb3623989ebc4afa8561` (2026-01-07): "MIT License /
+    Copyright (c) 2026 BigDargon". Full notice below. The repository
+    metadata also reports `MIT`.
 
 ### HaGeZi DNS Blocklists: NSFW
 
@@ -77,6 +82,27 @@ restriction.
   - https://oisd.nl/faq#license: "Under which license are the oisd lists
     distributed? GNU General Public License v3.0".
 
+### The Block List Project: porn (frozen)
+
+- File: `porn.txt` in https://github.com/blocklistproject/Lists
+- Pinned for good to commit `4f5fb53d6c5c2ed75d5378cdee12f640b0f6f2c7`
+  (2026-07-18, the last change to `porn.txt`), SHA-256
+  `425590c37e3ea624fdf646b14ba661f8b8f38391686adcf02b73f8b2d74b0db1`. This is
+  byte for byte the file the Hayaa app's earlier bundled blocklist was built
+  from (its build metadata records the same SHA-256), and it is still the
+  file on the default branch. The repository is archived, so the source is
+  marked `frozen` in `sources.lock.json` and the monthly job never re-pins it.
+- Licence: The Unlicense (public domain dedication)
+- Evidence:
+  - `LICENSE` at commit `4f5fb53d6c5c2ed75d5378cdee12f640b0f6f2c7`: "This is
+    free and unencumbered software released into the public domain." (SHA-256
+    `6b0382b16279f26ff69014300541967a356a666eb0b91b422f6862f6b7dad17e`, the
+    same text as ShadowWhisperer's).
+  - The GitHub repository metadata reports `Unlicense` and `archived: true`.
+  - The file's own header says "License: MIT". Both licences allow the list
+    to be redistributed under the GPL; the repository's `LICENSE` is the
+    one recorded.
+
 ## Sources considered and not included
 
 | Source | Reason |
@@ -85,7 +111,6 @@ restriction.
 | StevenBlack porn extension: brijrajparmar27 | Licence CC BY 4.0 (`update.json`); only the MIT parts are used |
 | StevenBlack porn extension: sinfonietta | MIT, but a copy of Sinfonietta's list, which is used directly |
 | StevenBlack porn extension: sinfonietta-snuff | MIT, but a list of violent (snuff) sites, outside this list's scope |
-| The Block List Project: porn | Repository archived; its content is largely contained in HaGeZi and oisd |
 
 ## Build-time references (not redistributed)
 
@@ -103,8 +128,9 @@ list and are not published with it.
 
 ### Tranco top sites ranking
 
-- https://tranco-list.eu, pinned by permanent list ID in `sources.lock.json`
-  (at the time of writing `PYK6J`, created 2026-10-29 from the 30 days
+- https://tranco-list.eu, pinned by permanent list ID in `src/config.ts`
+  (`TRANCO_LIST_ID`, copied into `sources.lock.json` with its SHA-256; at
+  the time of writing `PYK6J`, created 2026-10-29 from the 30 days
   2026-09-30 to 2026-10-29; providers CrUX, Farsight, Majestic, Cloudflare
   Radar and Cisco Umbrella; registrable domains only). The top 10,000
   entries are used.
@@ -116,9 +142,13 @@ list and are not published with it.
   its paper: Victor Le Pochat, Tom Van Goethem, Samaneh Tajalizadehkhoob,
   Maciej Korczyński and Wouter Joosen, "Tranco: A Research-Oriented Top
   Sites Ranking Hardened Against Manipulation", NDSS 2019.
-- Use: a review gate (every popular site the list would block must be
-  reviewed by hand) and the choice of the starter list. The ranking is never
-  redistributed: no ranks are stored in this repository or in a release.
+- Use: the review gates (every top-10,000 site the list would block, and
+  every listed subdomain of a top-1,000 site, must be reviewed by hand) and
+  the choice of the starter list. The ranking is never redistributed: no
+  ranks are stored in this repository or in a release.
+- TODO: Cloudflare Radar's data is CC BY-NC 4.0. The maintainer will create a
+  custom Tranco list without Cloudflare Radar; its ID then replaces `PYK6J`
+  in `src/config.ts` (one line), and the next monthly run re-pins it.
 
 ## MIT licence notices
 

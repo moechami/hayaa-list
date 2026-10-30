@@ -6,10 +6,12 @@ A release has these files:
 |---|---|
 | `hayaa-list-<serial>.bin.gz` | The list, binary format v2, gzip-compressed |
 | `hayaa-list-<serial>.txt` | The same list as plain text, one entry per line |
-| `starter.bin` | The starter list (about 50 sites), binary format v2, not compressed |
+| `starter.bin` | The starter list (exactly 50 hosts), binary format v2, not compressed |
 | `manifest.json` | Describes the list file: serial, sizes, hashes, probes |
 | `manifest.json.sig` | Signature over `manifest.json` |
+| `build-info.json` | Per-source line, host and skipped-line counts, and the entries held back for review; read by the next build, never by the app |
 | `sources.lock.json` | The exact inputs the release was built from |
+| `LICENSE`, `CREDITS.md` | The licence of the list data (GPL-3.0-only) and its sources and attributions |
 
 The serial is `YYYYMMDDNN`: the UTC build date and a run number for that day
 (`2026110101`). It only ever increases; the app refuses a release older than
@@ -179,7 +181,33 @@ list always compresses to the same bytes on any machine.
 ## starter.bin
 
 The starter list uses the same v2 format and the same serial as the full
-list. It holds the most visited sites of the full list (by the Tranco
-ranking at build time, registrable domains only, skipping the delivery and
-advertising domains in `data/starter-exclude.txt`) plus
-`data/starter-extra.txt`. Every entry is also an entry of the full list.
+list. It holds exactly 50 host entries (no page entries), every one also an
+entry of the full list: the most visited sites of the full list by the
+Tranco ranking at build time (registrable domains only), at most two per
+brand, skipping the delivery and advertising domains in
+`data/starter-exclude.txt`, plus `data/starter-extra.txt`. A brand is the
+name of the registrable domain without trailing digits or a hyphenated tail
+(`xhamster2.com` and `xhamster.desi` are both `xhamster`), or the brand
+`data/starter-brands.txt` gives a mirror whose name does not show it.
+
+The app ships `starter.bin` inside the app, so a new one reaches users only
+with an app update.
+
+## build-info.json
+
+UTF-8 JSON, two-space indentation and a final newline. The next monthly
+build reads it from the latest release to run its shrink gates and to tell
+new held-back entries from ones already waiting for review.
+
+```json
+{
+  "buildInfoVersion": 1,
+  "serial": 2026110101,
+  "hostCount": 1110536,
+  "pathCount": 0,
+  "sources": [
+    { "id": "hagezi-nsfw", "commit": "<40 hex>", "sha256": "<64 hex>", "lines": 92336, "hosts": 92336, "skippedLines": 0 }
+  ],
+  "heldBack": { "topSites": [], "topSiteSubdomains": [] }
+}
+```
