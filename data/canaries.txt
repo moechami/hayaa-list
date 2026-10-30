@@ -1,0 +1,19 @@
+# Canaries: well-known adult sites that every release MUST block.
+#
+# They are written into manifest.json, and the app checks each one against a
+# downloaded list before installing it; a list that misses any canary is
+# refused. The build fails first if one does not match. At most 20 lines.
+#
+# Format: "host" or "host /path". A path exercises the page-level lookup; on
+# a listed host any path matches.
+pornhub.com
+xvideos.com
+xnxx.com
+xhamster.com
+chaturbate.com
+stripchat.com
+spankbang.com
+redtube.com
+youporn.com
+onlyfans.com
+pornhub.com /view_video.php

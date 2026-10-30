@@ -1,0 +1,12 @@
+# Reviewed additions to the Hayaa List.
+#
+# One host per line, in normalized form: lowercase, ASCII (punycode for
+# international names), no "www.", no scheme, port or path. A listed host
+# also blocks every subdomain of it.
+#
+# Every entry here was reported (normally through a GitHub issue) and checked
+# by hand before it was added. Reference the issue in a trailing comment:
+#   example-adult-site.com   # issue 123
+#
+# A bare public suffix ("co.uk", "blogspot.com") or an allowlisted host fails
+# the build.

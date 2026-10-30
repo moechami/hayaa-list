@@ -1,0 +1,10 @@
+# Page-level entries: adult sections of sites that are otherwise fine.
+#
+# Format: host/seg1[/seg2[/seg3]], lowercase, no query or fragment. An entry
+# matches that path and everything below it, on the host and its subdomains,
+# with whole-segment comparison ("reddit.com/r/abc" never matches "/r/abcd").
+# See docs/FORMAT.md for the exact rule.
+#
+# Each entry must be reviewed by hand and justified in a trailing comment
+# (where it comes from, why the whole site is not listed). None of the
+# current sources publish page-level entries, so this file starts empty.

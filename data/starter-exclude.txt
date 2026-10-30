@@ -1,0 +1,28 @@
+# Hosts never chosen for the free starter list (starter.bin).
+#
+# The starter list is picked automatically: the most popular entries of the
+# full list. Some popular entries are content delivery, advertising or
+# redirect domains that no one opens in a browser address bar; they stay in
+# the full list but would waste a starter slot. Each must be a plain host.
+ahacdn.me         # video delivery for adult tube sites
+ahcdn.com         # video delivery for adult tube sites
+bcvcdn.com        # delivery for a live cam site
+bluesystem.me     # live cam service infrastructure
+dicrotin.com      # redirect domain, no page of its own
+doppiocdn.com     # delivery for a live cam site
+flixcdn.com       # video delivery
+hath.network      # image delivery network for a gallery site
+highwebmedia.com  # delivery for a live cam site
+mjedge.net        # delivery on an adult hosting provider
+mmcdn.com         # delivery for a live cam site
+oolveris.com      # redirect domain, no page of its own
+phncdn.com        # delivery for a tube site
+sb-cd.com         # delivery for a tube site
+strpst.com        # delivery for a live cam site
+trafficjunky.net  # advertising network
+tsyndicate.com    # advertising network
+vcmdiawe.com      # redirect domain, no page of its own
+xhcdn.com         # delivery for a tube site
+xhpingcdn.com     # delivery for a tube site
+xnxx-cdn.com      # delivery for a tube site
+xvideos-cdn.com   # delivery for a tube site

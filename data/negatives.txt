@@ -1,0 +1,25 @@
+# Negatives: popular non-adult sites that no release may block.
+#
+# They are written into manifest.json, and the app refuses a downloaded list
+# that matches any of them. The build fails first if one matches. At most 20
+# lines. Format: "host" or "host /path".
+google.com
+youtube.com
+wikipedia.org
+en.wikipedia.org
+reddit.com
+facebook.com
+instagram.com
+whatsapp.com
+x.com
+github.com
+apple.com
+microsoft.com
+amazon.com
+bing.com
+duckduckgo.com
+linkedin.com
+quran.com
+sunnah.com
+hayaa.io
+reddit.com /r/islam

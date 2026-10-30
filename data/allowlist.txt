@@ -1,0 +1,87 @@
+# Allowlist: hosts the Hayaa List must never block, whatever a source says.
+#
+# Two forms:
+#   example.com     that host itself is never an entry. Entries for its
+#                   subdomains stay. Used for platforms where unrelated people
+#                   publish under one domain: the platform must stay
+#                   reachable, but an adult site hosted on it is still listed.
+#   *.example.com   that host and everything under it are never entries.
+#                   Used for infrastructure that phones, browsers and the
+#                   Hayaa app depend on.
+#
+# Every entry says why it is here. False positives found by the top-sites
+# review are added here too (see data/reviewed-top-hits.txt).
+
+# --- Infrastructure (the host and everything under it) ---
+*.hayaa.io            # the Hayaa app and website
+*.supabase.co         # the Hayaa app's backend
+*.supabase.in         # the Hayaa app's backend
+*.revenuecat.com      # the Hayaa app's subscriptions
+*.sentry.io           # the Hayaa app's crash reports
+*.aladhan.com         # prayer times in the Hayaa app
+*.expo.dev            # the Hayaa app's update service
+*.expo.io             # the Hayaa app's update service
+*.github.com          # hosts this list and its releases
+*.githubusercontent.com  # serves release downloads for this list
+*.google.com          # search, accounts, Play Store
+*.googleapis.com      # Android and Google services
+*.gstatic.com         # Google static content used by most sites
+*.android.com         # Android system services
+*.apple.com           # Apple system services
+*.icloud.com          # Apple accounts
+*.cloudflare.com      # network infrastructure used by many sites
+*.microsoft.com       # system services, accounts
+*.wikipedia.org       # reference site; articles on any subject
+
+# --- Platforms with user-published content (the root only) ---
+# Listed subdomains on these stay blocked; the platform itself must not be.
+tumblr.com            # blog platform; listed blogs keep their own entries
+wordpress.com         # blog platform; listed blogs keep their own entries
+b-cdn.net             # BunnyCDN, serves unrelated sites from subdomains
+cloudfront.net        # Amazon CloudFront, serves unrelated sites from subdomains
+amazonaws.com         # Amazon Web Services, serves unrelated sites from subdomains
+akamaized.net         # Akamai CDN, serves unrelated sites from subdomains
+reddit.com            # general forum; adult communities are page-level entries
+imgur.com             # general image host
+x.com                 # general social network
+twitter.com           # general social network
+
+# --- False positives found by the top-sites review (the root only) ---
+# Popular sites that one or two sources list but whose main content is not
+# sexual. Entries for their subdomains, if any, stay.
+1337x.to              # torrent index, not an adult site
+3iskk.xyz             # TV drama streaming site
+afrointroductions.com # mainstream dating site
+badoo.com             # mainstream dating site
+match.com             # mainstream dating site
+gotinder.com          # Tinder, mainstream dating service
+boosty.to             # general creator subscription platform
+booth.pm              # general creator marketplace
+cafepress.com         # merchandise shop
+character.ai          # general chat platform with a no-explicit-content policy
+comix.to              # general comics reader
+czbooks.net           # general web novel site
+dmm.com               # DMM general (all-ages) services; its adult side is dmm.co.jp, which stays listed
+dramaboxdb.com        # short drama streaming catalogue
+ekstrabladet.dk       # Danish national newspaper
+fc2.com               # FC2 general web services; listed adult subdomains stay
+filmyfly.soy          # film streaming site
+furaffinity.net       # general art community, mature content behind an opt-in filter
+hmv.co.jp             # music and film retailer
+ixdzs8.com            # general web novel site
+kinopoisk.ru          # film database and streaming service
+likee.video           # mainstream short video app
+mangago.me            # general manga reader
+mangalik.net          # general manga reader
+manhuagui.com         # general comics reader
+manhwaweb.com         # general comics reader
+meusitehostgator.com.br  # web hosting provider's customer domain; listed customer subdomains stay
+nicovideo.jp          # Niconico, mainstream video site
+refinery29.com        # lifestyle magazine
+scan-manga.com        # general manga reader
+sslip.io              # DNS service for developers; listed subdomains stay
+suruga-ya.jp          # second-hand goods retailer
+tango.me              # mainstream live streaming app
+weebcentral.com       # general manga reader
+yandex.by             # Yandex search (Belarus)
+yanmaga.jp            # Young Magazine, publisher's official manga site

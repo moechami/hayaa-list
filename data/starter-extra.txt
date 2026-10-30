@@ -1,0 +1,5 @@
+# Manual additions to the free starter list (starter.bin).
+#
+# The starter list is the most visited adult sites, chosen automatically by
+# popularity rank from the full list. Hosts here are added on top. Each must
+# already be an entry of the full list, or the build fails.
