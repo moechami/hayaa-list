@@ -1,14 +1,25 @@
-// The build itself, without I/O: source texts and hand-kept files in, release
-// files and a report out. Every gate that can fail the build lives here, so
-// the tests exercise exactly what the monthly job runs.
+// The build itself, without I/O: source texts, hand-kept files and the
+// previous release in; release files and a report out. Every gate that can
+// fail the build lives here, so the tests exercise exactly what the monthly
+// job runs.
 //
-//   parse each source → union → add reviewed additions → drop bare public
-//   suffixes → allowlist → drop hosts a listed parent already covers →
-//   compile (format v2) → gates → starter list → gzip → manifest
+//   parse each source (format gate) → union → add reviewed additions → drop
+//   bare public suffixes → allowlist → review gates on popular sites (hold
+//   back new unreviewed entries) → drop hosts a listed parent already covers
+//   → shrink gates → compile (format v2) → canaries and negatives → starter
+//   list → gzip → manifest and build-info.json
 //
 // The allowlist runs BEFORE the parent dedupe: if a source lists a platform
 // root and some of its subdomains, removing the root after the dedupe would
 // also lose the subdomains it had absorbed.
+//
+// Review gates. Two kinds of entries need a person's review before they are
+// published: a site in the Tranco top 10,000 (data/reviewed-top-hits.txt),
+// and a listed subdomain of a site in the top 1,000
+// (data/reviewed-top-site-subdomains.txt). An unreviewed one that the
+// previous release already listed stays listed; a new one is held back (left
+// out of this release, listed in build-info.json and in an issue) until it is
+// reviewed. More than MAX_NEW_HELD_BACK new ones at once fails the build.
 
 import { createHash } from 'node:crypto'
 import {
@@ -21,21 +32,25 @@ import {
 } from './format'
 import { deterministicGzip, gunzip } from './gzip'
 import { listFileName, MAX_GZ_BYTES, MAX_PROBES, MAX_RAW_BYTES, serializeManifest, validateManifest, type Probe } from './manifest'
-import { applyAllowlist, applyExactAllowlist, dedupeCoveredHosts, parseList, readDataLines } from './parse'
+import { applyAllowlist, applyExactAllowlist, coveredBy, dedupeCoveredHosts, parentDomains, parseList, readDataLines } from './parse'
 import { normalizeDomainInput } from './domains'
 import { isPublicSuffix, parsePsl, registrableDomain, type PublicSuffixList } from './psl'
+import { BUILD_INFO, BUILD_INFO_VERSION, serializeBuildInfo, type BuildInfo, type PreviousRelease, type SourceInfo } from './previous'
+import { MAX_SKIPPED_RATIO, MIN_SKIPPED_LINES, MIN_SOURCE_RATIO, MIN_TOTAL_RATIO } from './config'
 
 export type BuildInput = {
-  /** Source texts in lock order. */
-  sources: readonly { id: string; text: string }[]
+  /** Source texts in lock order, with the commit each was read at. */
+  sources: readonly { id: string; text: string; commit?: string }[]
   /** Contents of the hand-kept files in data/. */
   data: {
     allowlist: string
     additions: string
     paths: string
     reviewedTopHits: string
+    reviewedTopSiteSubdomains: string
     starterExtra: string
     starterExclude: string
+    starterBrands: string
     canaries: string
     negatives: string
   }
@@ -43,29 +58,43 @@ export type BuildInput = {
   psl: string
   /** Tranco CSV ("rank,domain" per line), most popular first. */
   tranco: string
-  /** How many Tranco ranks the review gate covers. */
+  /** How many Tranco ranks the top-sites review gate covers. */
   trancoTop: number
+  /** How many Tranco ranks the subdomain review gate covers. */
+  subdomainRanks: number
   serial: number
   keyId: string
-  /** Sites in the free starter list chosen by popularity (starter-extra.txt adds to them). */
+  /** Total size of the free starter list (popular picks plus starter-extra.txt). */
   starterSize: number
+  /** How many starter entries one brand may take. */
+  starterPerBrand: number
+  /** The previous release, or null when there is none. */
+  previous: PreviousRelease | null
+  /** New held-back entries above this fail the build. */
+  maxNewHeldBack: number
+  /** Skip the shrink gates (a deliberate, reviewed removal of a source). */
+  allowShrink: boolean
 }
 
 export type BuildReport = {
   serial: number
-  sources: { id: string; hosts: number; skippedLines: number; sha256: string }[]
+  previous: string | null
+  sources: SourceInfo[]
   counts: {
     union: number
     additions: number
     publicSuffixesDropped: number
     allowlisted: number
-    afterParentDedupe: number
     finalHosts: number
     paths: number
     pathsCoveredByHost: number
     pathsCoveredByPath: number
     starterHosts: number
     topSitesBlocked: number
+    unreviewedKeptFromPrevious: number
+    heldBackTopSites: number
+    heldBackTopSiteSubdomains: number
+    newHeldBack: number
     topSiteSubdomainEntries: number
   }
   files: Record<string, { bytes: number; sha256: string }>
@@ -73,12 +102,16 @@ export type BuildReport = {
 }
 
 export type BuildOutput = {
-  /** File name → bytes, everything that goes in dist/. */
+  /** File name → bytes, everything that goes in dist/ and the release. */
   files: Map<string, Uint8Array>
   report: BuildReport
   /** The starter hosts in the order chosen (popularity first, then starter-extra.txt). */
   starter: string[]
-  /** Listed subdomains of popular sites, for a human to look over (not a gate, never published). */
+  /** Entries left out of this release until reviewed. */
+  heldBack: { topSites: string[]; topSiteSubdomains: string[] }
+  /** Unreviewed entries kept only because the previous release listed them. */
+  keptFromPrevious: string[]
+  /** Listed subdomains of the top-10,000 sites, a review aid (never published). */
   topSiteSubdomainEntries: string[]
 }
 
@@ -141,25 +174,58 @@ const parseHostFile = (text: string, what: string): string[] =>
     return host
   })
 
-type Allowlist = { exact: Set<string>; subtree: string[] }
+/** "example.com" = that host exactly; "*.example.com" = that host and everything under it. */
+type HostRules = { exact: Set<string>; subtree: string[] }
 
-/** "example.com" = that host itself is never an entry; "*.example.com" = nor anything under it. */
-const parseAllowlist = (text: string): Allowlist => {
+const parseHostRules = (text: string, what: string): HostRules => {
   const exact = new Set<string>()
   const subtree: string[] = []
   for (const line of readDataLines(text)) {
     const wild = line.startsWith('*.')
     const raw = wild ? line.slice(2) : line
     const host = normalizeDomainInput(raw)
-    if (host === null || host !== raw.toLowerCase()) throw new GateError(`allowlist: "${line}" is not a normalized host`)
+    if (host === null || host !== raw.toLowerCase()) throw new GateError(`${what}: "${line}" is not a normalized host`)
     if (wild) subtree.push(host)
     else exact.add(host)
   }
   return { exact, subtree }
 }
 
-const allowlisted = (a: Allowlist, host: string): boolean =>
-  a.exact.has(host) || a.subtree.some((s) => host === s || host.endsWith('.' + s))
+const underSubtree = (r: HostRules, host: string): boolean => r.subtree.some((s) => host === s || host.endsWith('.' + s))
+const ruleCovers = (r: HostRules, host: string): boolean => r.exact.has(host) || underSubtree(r, host)
+
+/**
+ * The brand of a registrable domain, for the starter list's per-brand cap:
+ * its name label without trailing digits or a hyphenated tail
+ * ("xhamster2.com" and "xhamster.desi" → "xhamster", "xnxx-tv.com" → "xnxx").
+ */
+export const brandKey = (registrable: string): string => {
+  const label = registrable.split('.', 1)[0]
+  const noDigits = label.replace(/[0-9]+$/, '')
+  const base = noDigits.length >= 3 ? noDigits : label // "e621" stays "e621"
+  const head = base.split('-', 1)[0]
+  return head.length >= 4 ? head : base // "e-hentai" stays "e-hentai"
+}
+
+/** data/starter-brands.txt: "<registrable domain> <brand>" per line. */
+const parseBrands = (text: string): Map<string, string> => {
+  const out = new Map<string, string>()
+  for (const line of readDataLines(text)) {
+    const [domain, brand, extra] = line.split(/\s+/)
+    if (brand === undefined || extra !== undefined) throw new GateError(`starter-brands: "${line}" must be a domain and a brand`)
+    if (normalizeDomainInput(domain) !== domain) throw new GateError(`starter-brands: "${domain}" is not a normalized host`)
+    if (!/^[a-z0-9-]+$/.test(brand)) throw new GateError(`starter-brands: brand "${brand}" must be lowercase letters, digits or "-"`)
+    out.set(domain, brand)
+  }
+  return out
+}
+
+/** Same family: equal keys, or one key of 5+ letters starting the other ("xhamster", "xhamsterlive"). */
+export const sameBrand = (a: string, b: string): boolean => {
+  if (a === b) return true
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a]
+  return short.length >= 5 && long.startsWith(short)
+}
 
 const compile = (hosts: Iterable<string>, paths: readonly string[], serial: number): { bytes: Uint8Array; stats: HayaaListStats } => {
   const out = compileHayaaList({ hosts: [...hosts], paths, serial })
@@ -179,25 +245,53 @@ const assertRoundTrip = (bytes: Uint8Array, hosts: ReadonlySet<string>, paths: r
   if (decoded.paths.some((p) => !inputPaths.has(p))) throw new GateError(`${what}: round trip produced a page entry that was not in the input`)
 }
 
+/**
+ * Remove each held-back root and the hosts under it, except hosts the
+ * previous release already blocked: holding a new entry back must never
+ * unblock something that was blocked before.
+ */
+const removeHeld = (hosts: ReadonlySet<string>, roots: ReadonlySet<string>, previous: ReadonlySet<string>): Set<string> => {
+  if (roots.size === 0) return new Set(hosts)
+  const out = new Set<string>()
+  for (const h of hosts) {
+    const underRoot = roots.has(h) || parentDomains(h).some((p) => roots.has(p))
+    if (!underRoot || coveredBy(previous, h)) out.add(h)
+  }
+  return out
+}
+
+/** The listed entry that makes `host` match: the topmost listed one among it and its parents. */
+const matchingRoot = (hosts: ReadonlySet<string>, host: string): string => {
+  const parents = parentDomains(host)
+  for (let i = parents.length - 1; i >= 0; i--) if (hosts.has(parents[i])) return parents[i]
+  return host
+}
+
 export const runBuild = (input: BuildInput): BuildOutput => {
   const warnings: string[] = []
   const psl: PublicSuffixList = parsePsl(input.psl)
+  const previousHosts: ReadonlySet<string> = input.previous?.hosts ?? new Set<string>()
+  const previousInfo = input.previous?.info ?? null
 
-  // 1. Sources.
-  const perSource: BuildReport['sources'] = []
+  // 1. Sources, each checked for a format change.
+  const perSource: SourceInfo[] = []
   const union = new Set<string>()
   for (const s of input.sources) {
-    const { hosts, skipped } = parseList(s.text)
-    perSource.push({ id: s.id, hosts: hosts.size, skippedLines: skipped, sha256: sha256Hex(s.text) })
+    const { hosts, lines, skipped } = parseList(s.text)
+    if (skipped >= MIN_SKIPPED_LINES && skipped > MAX_SKIPPED_RATIO * lines) {
+      throw new GateError(`source ${s.id}: ${skipped} of ${lines} lines unreadable (over ${MAX_SKIPPED_RATIO * 100}%); its format has probably changed`)
+    }
+    perSource.push({ id: s.id, commit: s.commit ?? null, sha256: sha256Hex(s.text), lines, hosts: hosts.size, skippedLines: skipped })
     for (const h of hosts) union.add(h)
   }
   const unionCount = union.size
 
   // 2. Hand-kept files.
-  const allow = parseAllowlist(input.data.allowlist)
+  const allow = parseHostRules(input.data.allowlist, 'allowlist')
   const additions = parseHostFile(input.data.additions, 'additions')
   const paths = readDataLines(input.data.paths).map((p) => p.toLowerCase())
   const reviewed = new Set(parseHostFile(input.data.reviewedTopHits, 'reviewed-top-hits'))
+  const reviewedSub = parseHostRules(input.data.reviewedTopSiteSubdomains, 'reviewed-top-site-subdomains')
   const starterExtra = parseHostFile(input.data.starterExtra, 'starter-extra')
   const starterExclude = new Set(parseHostFile(input.data.starterExclude, 'starter-exclude'))
   const canaries = parseProbes(input.data.canaries, 'canaries')
@@ -206,15 +300,19 @@ export const runBuild = (input: BuildInput): BuildOutput => {
 
   for (const h of additions) {
     if (isPublicSuffix(psl, h)) throw new GateError(`additions: "${h}" is a public suffix`)
-    if (allowlisted(allow, h)) throw new GateError(`additions: "${h}" is also on the allowlist`)
+    if (ruleCovers(allow, h)) throw new GateError(`additions: "${h}" is also on the allowlist`)
     union.add(h)
   }
   for (const p of paths) {
     const host = p.split('/', 1)[0]
     if (isPublicSuffix(psl, host)) throw new GateError(`paths: the host of "${p}" is a public suffix`)
-    if (allow.subtree.some((s) => host === s || host.endsWith('.' + s))) throw new GateError(`paths: "${p}" is under an allowlisted domain`)
+    if (underSubtree(allow, host)) throw new GateError(`paths: "${p}" is under an allowlisted domain`)
   }
-  for (const h of reviewed) if (allowlisted(allow, h)) warnings.push(`reviewed-top-hits: "${h}" is also allowlisted, so it is not blocked`)
+  // A negative must also be allowlisted, so no source can ever list it.
+  for (const n of negatives) {
+    if (!ruleCovers(allow, n.host)) throw new GateError(`negatives: "${n.host}" is not on the allowlist`)
+  }
+  for (const h of reviewed) if (ruleCovers(allow, h)) warnings.push(`reviewed-top-hits: "${h}" is also allowlisted, so it is not blocked`)
 
   // 3. Public Suffix guard: a bare suffix would block every site registered under it.
   let publicSuffixesDropped = 0
@@ -229,11 +327,62 @@ export const runBuild = (input: BuildInput): BuildOutput => {
   const afterSubtree = applyAllowlist(union, allow.subtree)
   const afterExact = applyExactAllowlist(afterSubtree.hosts, allow.exact)
   const allowlistedCount = afterSubtree.removed + afterExact.removed
+  const listed = afterExact.hosts
 
-  // 5. Parent dedupe.
-  const finalHosts = dedupeCoveredHosts(afterExact.hosts)
+  // 5. Review gate, top sites: every popular site the list blocks must have been reviewed.
+  const ranked = parseTranco(input.tranco).slice(0, input.trancoTop)
+  if (ranked.length < input.trancoTop) throw new GateError(`top-sites list has ${ranked.length} entries, expected ${input.trancoTop}`)
+  const topHits = ranked.filter((d) => coveredBy(listed, d))
+  const unreviewedTop = topHits.filter((d) => !reviewed.has(d))
+  const keptTop = unreviewedTop.filter((d) => coveredBy(previousHosts, d))
+  const heldTop = unreviewedTop.filter((d) => !coveredBy(previousHosts, d)).sort()
+  const afterTop = removeHeld(listed, new Set(heldTop.map((d) => matchingRoot(listed, d))), previousHosts)
+  const topSet = new Set(ranked)
+  for (const h of reviewed) if (!topSet.has(h)) warnings.push(`reviewed-top-hits: "${h}" is no longer in the top ${input.trancoTop}`)
 
-  // 6. Compile and check the full list.
+  // 6. Review gate, subdomains of the most popular sites (the site itself stays reachable,
+  //    but a wrong entry such as m.vk.com would still break it for most people).
+  const topSubSet = new Set(ranked.slice(0, input.subdomainRanks))
+  const subOf = (set: Iterable<string>, top: ReadonlySet<string>): string[] =>
+    [...set]
+      .filter((h) => {
+        const reg = registrableDomain(psl, h)
+        return reg !== null && reg !== h && top.has(reg) && !reviewed.has(reg)
+      })
+      .sort()
+  const subCandidates = subOf(dedupeCoveredHosts(afterTop), topSubSet)
+  const unreviewedSub = subCandidates.filter((h) => !ruleCovers(reviewedSub, h))
+  const keptSub = unreviewedSub.filter((h) => coveredBy(previousHosts, h))
+  const heldSub = unreviewedSub.filter((h) => !coveredBy(previousHosts, h))
+  const finalHosts = dedupeCoveredHosts(removeHeld(afterTop, new Set(heldSub), previousHosts))
+  for (const h of reviewedSub.exact) if (!finalHosts.has(h)) warnings.push(`reviewed-top-site-subdomains: "${h}" is no longer an entry`)
+
+  // A burst of new popular entries suggests a broken or poisoned upstream: stop.
+  const heldBefore = new Set([...(previousInfo?.heldBack.topSites ?? []), ...(previousInfo?.heldBack.topSiteSubdomains ?? [])])
+  const newHeld = [...heldTop, ...heldSub].filter((h) => !heldBefore.has(h))
+  if (newHeld.length > input.maxNewHeldBack) {
+    throw new GateError(
+      `${newHeld.length} new unreviewed popular entries (more than ${input.maxNewHeldBack}); an upstream list may be broken or poisoned. ` +
+        'See dist/held-back-candidates.txt: review each into data/reviewed-top-hits.txt, data/reviewed-top-site-subdomains.txt or data/allowlist.txt.',
+      { file: 'held-back-candidates.txt', lines: newHeld },
+    )
+  }
+  if (heldTop.length + heldSub.length > 0) warnings.push(`${heldTop.length + heldSub.length} unreviewed popular entr(ies) held back; see dist/held-back.txt`)
+
+  // 7. Shrink gates against the previous release.
+  if (previousInfo && !input.allowShrink) {
+    if (finalHosts.size < MIN_TOTAL_RATIO * previousInfo.hostCount) {
+      throw new GateError(`the list shrank from ${previousInfo.hostCount} to ${finalHosts.size} hosts (more than ${Math.round((1 - MIN_TOTAL_RATIO) * 100)}%)`)
+    }
+    for (const s of perSource) {
+      const before = previousInfo.sources.find((p) => p.id === s.id)
+      if (before && s.hosts < MIN_SOURCE_RATIO * before.hosts) {
+        throw new GateError(`source ${s.id} shrank from ${before.hosts} to ${s.hosts} hosts (more than ${Math.round((1 - MIN_SOURCE_RATIO) * 100)}%)`)
+      }
+    }
+  }
+
+  // 8. Compile and check the full list.
   const full = compile(finalHosts, paths, input.serial)
   assertRoundTrip(full.bytes, finalHosts, paths, 'full list')
   const header = readHayaaListHeader(full.bytes)
@@ -243,7 +392,7 @@ export const runBuild = (input: BuildInput): BuildOutput => {
   if (full.bytes.length > MAX_RAW_BYTES) throw new GateError('full list is over the app\'s 96 MiB cap')
   for (const h of finalHosts) if (isPublicSuffix(psl, h)) throw new GateError(`"${h}" is a public suffix`) // invariant
 
-  // 7. Canaries and negatives, through the same matching rule the app uses.
+  // 9. Canaries and negatives, through the same matching rule the app uses.
   for (const c of canaries) {
     if (!hayaaListMatches(full.bytes, c.host, c.path ?? null)) throw new GateError(`canary does not match: ${c.host}${c.path ?? ''}`)
   }
@@ -251,38 +400,31 @@ export const runBuild = (input: BuildInput): BuildOutput => {
     if (hayaaListMatches(full.bytes, n.host, n.path ?? null)) throw new GateError(`negative matches: ${n.host}${n.path ?? ''}`)
   }
 
-  // 8. Top-sites review: every popular site the list blocks must have been reviewed by hand.
-  const ranked = parseTranco(input.tranco).slice(0, input.trancoTop)
-  if (ranked.length < input.trancoTop) throw new GateError(`top-sites list has ${ranked.length} entries, expected ${input.trancoTop}`)
-  const topHits = ranked.filter((d) => hayaaListMatches(full.bytes, d))
-  const unreviewed = topHits.filter((d) => !reviewed.has(d))
-  if (unreviewed.length > 0) {
-    throw new GateError(
-      `${unreviewed.length} top site(s) would be blocked without review; see dist/top-hits-candidates.txt. ` +
-        'Add each genuinely adult site to data/reviewed-top-hits.txt and each wrong one to data/allowlist.txt.',
-      { file: 'top-hits-candidates.txt', lines: [...unreviewed].sort() },
-    )
-  }
-  const topSet = new Set(ranked)
-  for (const h of reviewed) if (!topSet.has(h)) warnings.push(`reviewed-top-hits: "${h}" is no longer in the top ${input.trancoTop}`)
-  // Listed subdomains of popular sites (not gated: the site itself stays reachable).
-  const subEntries = [...finalHosts].filter((h) => {
-    const reg = registrableDomain(psl, h)
-    return reg !== null && reg !== h && topSet.has(reg) && !reviewed.has(reg)
-  })
-
-  // 9. Starter list: the most popular listed sites, registrable domains only.
+  // 10. Starter list: the most popular listed sites, registrable domains only,
+  //     at most starterPerBrand per brand, then starter-extra.txt; exactly starterSize.
   const starter: string[] = []
-  for (const d of ranked) {
-    if (starter.length >= input.starterSize) break
-    if (finalHosts.has(d) && !starterExclude.has(d) && registrableDomain(psl, d) === d) starter.push(d)
+  const brands = parseBrands(input.data.starterBrands)
+  const brandOf = (h: string): string => {
+    const reg = registrableDomain(psl, h) ?? h
+    return brands.get(reg) ?? brandKey(reg)
   }
-  if (starter.length < input.starterSize) warnings.push(`starter list has only ${starter.length} popular sites`)
+  const brandCount = (b: string): number => starter.filter((h) => sameBrand(brandOf(h), b)).length
+  const popularSlots = input.starterSize - starterExtra.length
+  for (const d of ranked) {
+    if (starter.length >= popularSlots) break
+    if (!finalHosts.has(d) || starterExclude.has(d) || starterExtra.includes(d) || registrableDomain(psl, d) !== d) continue
+    if (brandCount(brandOf(d)) >= input.starterPerBrand) continue
+    starter.push(d)
+  }
   for (const h of starterExtra) {
     if (!finalHosts.has(h)) throw new GateError(`starter-extra: "${h}" is not an entry of the full list`)
     if (starterExclude.has(h)) throw new GateError(`starter-extra: "${h}" is also in starter-exclude`)
+    if (brandCount(brandOf(h)) >= input.starterPerBrand) throw new GateError(`starter-extra: "${h}" is over the ${input.starterPerBrand}-per-brand cap`)
     if (!starter.includes(h)) starter.push(h)
   }
+  // Bypass coverage belongs to the full list only; a proxy name in the starter list is a mistake.
+  for (const h of starter) if (/proxy|unblock/.test(h)) throw new GateError(`starter list: "${h}" looks like a proxy or bypass site; add it to starter-exclude.txt`)
+  if (starter.length !== input.starterSize) throw new GateError(`starter list has ${starter.length} entries, expected exactly ${input.starterSize}`)
   const starterSet = new Set(starter)
   if (starterSet.size >= finalHosts.size || [...starterSet].some((h) => !finalHosts.has(h))) {
     throw new GateError('starter list is not a strict subset of the full list')
@@ -290,12 +432,12 @@ export const runBuild = (input: BuildInput): BuildOutput => {
   const starterList = compile(starterSet, [], input.serial)
   assertRoundTrip(starterList.bytes, starterSet, [], 'starter list')
 
-  // 10. Gzip, checked by an independent inflater.
+  // 11. Gzip, checked by an independent inflater.
   const gz = deterministicGzip(full.bytes)
   if (gz.length > MAX_GZ_BYTES) throw new GateError('compressed list is over the app\'s 40 MiB cap')
   if (sha256Hex(gunzip(gz)) !== sha256Hex(full.bytes)) throw new GateError('gzip round trip failed')
 
-  // 11. Manifest.
+  // 12. Manifest (only the fields the app reads) and build-info.json (everything the next build compares against).
   const gzName = listFileName(input.serial)
   const manifest = serializeManifest({
     format: 2,
@@ -308,6 +450,15 @@ export const runBuild = (input: BuildInput): BuildOutput => {
   })
   const manifestProblem = validateManifest(manifest)
   if (manifestProblem) throw new GateError(`manifest refused (${manifestProblem})`)
+  const heldBack = { topSites: heldTop, topSiteSubdomains: heldSub }
+  const info: BuildInfo = {
+    buildInfoVersion: BUILD_INFO_VERSION,
+    serial: input.serial,
+    hostCount: header.hostCount,
+    pathCount: full.stats.paths,
+    sources: perSource,
+    heldBack,
+  }
 
   // Plain-text form of the list: hosts, then page entries, each sorted.
   const text =
@@ -319,30 +470,38 @@ export const runBuild = (input: BuildInput): BuildOutput => {
     [`hayaa-list-${input.serial}.txt`, new TextEncoder().encode(text)],
     ['starter.bin', starterList.bytes],
     ['manifest.json', manifest],
+    [BUILD_INFO, serializeBuildInfo(info)],
   ])
   const fileReport: BuildReport['files'] = {}
   for (const [name, bytes] of files) fileReport[name] = { bytes: bytes.length, sha256: sha256Hex(bytes) }
 
+  const reviewAid = subOf(finalHosts, topSet)
   return {
     files,
     starter,
-    topSiteSubdomainEntries: subEntries.sort(),
+    heldBack,
+    keptFromPrevious: [...keptTop, ...keptSub].sort(),
+    topSiteSubdomainEntries: reviewAid,
     report: {
       serial: input.serial,
+      previous: input.previous?.origin ?? null,
       sources: perSource,
       counts: {
         union: unionCount,
         additions: additions.length,
         publicSuffixesDropped,
         allowlisted: allowlistedCount,
-        afterParentDedupe: finalHosts.size,
         finalHosts: header.hostCount,
         paths: full.stats.paths,
         pathsCoveredByHost: full.stats.pathsCoveredByHost,
         pathsCoveredByPath: full.stats.pathsCoveredByPath,
         starterHosts: starterSet.size,
-        topSitesBlocked: topHits.length,
-        topSiteSubdomainEntries: subEntries.length,
+        topSitesBlocked: topHits.length - heldTop.length,
+        unreviewedKeptFromPrevious: keptTop.length + keptSub.length,
+        heldBackTopSites: heldTop.length,
+        heldBackTopSiteSubdomains: heldSub.length,
+        newHeldBack: newHeld.length,
+        topSiteSubdomainEntries: reviewAid.length,
       },
       files: fileReport,
       warnings,

@@ -32,6 +32,7 @@ describe('a passing build', () => {
 
   test('writes the release files', () => {
     assert.deepEqual([...out.files.keys()].sort(), [
+      'build-info.json',
       'hayaa-list-2026110101.bin',
       'hayaa-list-2026110101.bin.gz',
       'hayaa-list-2026110101.txt',
@@ -126,13 +127,15 @@ describe('gates that fail the build', () => {
     assertGate(withData({ canaries: Array.from({ length: 21 }, () => 'adult-one.com').join('\n') }), /more than 20/)
   })
 
-  test('a negative that matches', () => {
-    assertGate(withData({ negatives: 'google.com\nadult-two.com\n' }), /negative matches: adult-two.com/)
+  test('a negative that is not on the allowlist', () => {
+    assertGate(withData({ negatives: 'google.com\nadult-two.com\n' }), /negatives: "adult-two.com" is not on the allowlist/)
   })
 
-  test('a top site blocked without review: lists the candidates', () => {
-    const e = assertGate(withData({ reviewedTopHits: 'adult-one.com\n' }), /2 top site\(s\)/)
-    assert.deepEqual(e.details, { file: 'top-hits-candidates.txt', lines: ['adult-cdn.com', 'adult-two.com'] })
+  test('a negative that matches through a listed parent, although the host itself is allowlisted', () => {
+    assertGate(
+      withData({ negatives: 'google.com\nx.adult-two.com\n', allowlist: baseInput().data.allowlist + 'x.adult-two.com\n' }),
+      /negative matches: x.adult-two.com/,
+    )
   })
 
   test('a top-sites list shorter than the gate expects', () => {

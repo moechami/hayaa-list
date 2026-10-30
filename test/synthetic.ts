@@ -39,19 +39,26 @@ export const baseInput = (): BuildInput => ({
     },
   ],
   data: {
-    allowlist: 'platform.com  # root only\n*.safe.org  # with subdomains\n',
+    allowlist: 'platform.com  # root only\n*.safe.org  # with subdomains\n*.google.com  # a negative\nreddit.com  # a negative, root only\n',
     additions: '# none\n',
     paths: 'reddit.com/r/adult  # page entry\n',
     reviewedTopHits: 'adult-one.com\nadult-two.com\nadult-cdn.com\n',
+    reviewedTopSiteSubdomains: 'sub.platform.com\n',
     starterExtra: 'adult-three.net\n',
     starterExclude: 'adult-cdn.com\n',
+    starterBrands: '',
     canaries: 'adult-one.com\nreddit.com /r/adult/x\n',
     negatives: 'google.com\nplatform.com\nreddit.com /r/other\n',
   },
   psl: SYNTHETIC_PSL,
   tranco: ['1,google.com', '2,adult-cdn.com', '3,adult-two.com', '4,platform.com', '5,adult-one.com', '6,unranked-gate.com'].join('\r\n'),
   trancoTop: 5,
+  subdomainRanks: 4, // google.com, adult-cdn.com, adult-two.com, platform.com
   serial: 2026110101,
   keyId: 'k1',
-  starterSize: 2,
+  starterSize: 3, // two by popularity, one from starter-extra
+  starterPerBrand: 3, // every synthetic site is brand "adult"
+  previous: null,
+  maxNewHeldBack: 25,
+  allowShrink: false,
 })

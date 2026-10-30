@@ -11,6 +11,8 @@
   "scripts": {
     "build": "tsx src/build.ts",
     "update-lock": "tsx scripts/update-lock.ts",
+    "fetch-previous": "tsx scripts/fetch-previous.ts",
+    "check-serial": "tsx scripts/check-serial.ts",
     "sign": "tsx scripts/sign.ts",
     "verify": "tsx scripts/verify.ts",
     "typecheck": "tsc --noEmit",
