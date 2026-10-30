@@ -1,0 +1,112 @@
+{
+  "lockVersion": 1,
+  "sources": [
+    {
+      "id": "shadowwhisperer-adult",
+      "name": "ShadowWhisperer BlockLists: Adult",
+      "repo": "ShadowWhisperer/BlockLists",
+      "branch": "master",
+      "path": "Lists/Adult",
+      "commit": "f9be3af266a54f8c380063078785fb9b9b270bd0",
+      "url": "https://raw.githubusercontent.com/ShadowWhisperer/BlockLists/f9be3af266a54f8c380063078785fb9b9b270bd0/Lists/Adult",
+      "sha256": "e5711d87cb8c1874d8507426d57a718a7eb1b2f13c57a7de893e9fba2b1ad296",
+      "license": "Unlicense",
+      "licenseFile": "LICENSE",
+      "licenseSha256": "6b0382b16279f26ff69014300541967a356a666eb0b91b422f6862f6b7dad17e",
+      "homepage": "https://github.com/ShadowWhisperer/BlockLists",
+      "attribution": "ShadowWhisperer"
+    },
+    {
+      "id": "sinfonietta-pornography",
+      "name": "Sinfonietta hostfiles: pornography-hosts",
+      "repo": "Sinfonietta/hostfiles",
+      "branch": "master",
+      "path": "pornography-hosts",
+      "commit": "46f3097d7bcfc9eea323fe365074dfd771d0d17c",
+      "url": "https://raw.githubusercontent.com/Sinfonietta/hostfiles/46f3097d7bcfc9eea323fe365074dfd771d0d17c/pornography-hosts",
+      "sha256": "d5c31a7ee9f1920df47044270449ad42a1b09ad4f3b608410383abaabb27fa1d",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "licenseSha256": "b32ce488900c449c858b636ac18aab77ae483586508e3aa2e6a916d7a6ace1ae",
+      "homepage": "https://github.com/Sinfonietta/hostfiles",
+      "attribution": "Copyright (c) 2016 Sinfonietta"
+    },
+    {
+      "id": "stevenblack-porn-clefspeare13",
+      "name": "StevenBlack hosts: porn extension, Clefspeare13 pornhosts",
+      "repo": "StevenBlack/hosts",
+      "branch": "master",
+      "path": "extensions/porn/clefspeare13/hosts",
+      "commit": "11550239d5714d60b62be8796446ecba84a1bfb2",
+      "url": "https://raw.githubusercontent.com/StevenBlack/hosts/11550239d5714d60b62be8796446ecba84a1bfb2/extensions/porn/clefspeare13/hosts",
+      "sha256": "0af2d8d380778600b3865131eaf1d88f94479e96afabb0ff4d5537afb7923ca1",
+      "license": "MIT",
+      "licenseFile": "extensions/porn/clefspeare13/update.json",
+      "licenseSha256": "f08e73da867387c30a26e7835a71e18c76e8193befcf2a3fd24b7bc8684ae817",
+      "homepage": "https://github.com/StevenBlack/hosts/tree/master/extensions/porn/clefspeare13",
+      "attribution": "Clefspeare13 pornhosts contributors; maintained in StevenBlack/hosts (Copyright Steven Black)"
+    },
+    {
+      "id": "stevenblack-porn-bigdargon",
+      "name": "StevenBlack hosts: porn extension, BigDargon hostsVN adult",
+      "repo": "StevenBlack/hosts",
+      "branch": "master",
+      "path": "extensions/porn/bigdargon/hosts",
+      "commit": "11550239d5714d60b62be8796446ecba84a1bfb2",
+      "url": "https://raw.githubusercontent.com/StevenBlack/hosts/11550239d5714d60b62be8796446ecba84a1bfb2/extensions/porn/bigdargon/hosts",
+      "sha256": "c3c69ed66ed64f2927b8118bbbeee5637b201b5d3872b13840a1247d8a811e3c",
+      "license": "MIT",
+      "licenseFile": "extensions/porn/bigdargon/update.json",
+      "licenseSha256": "c207136c4ace89fa9d77d7fc3576aba3053ba0d9764ed6e2b598f78ba19cd824",
+      "homepage": "https://github.com/bigdargon/hostsVN",
+      "attribution": "Copyright (c) BigDargon; distributed through StevenBlack/hosts (Copyright Steven Black)"
+    },
+    {
+      "id": "hagezi-nsfw",
+      "name": "HaGeZi DNS Blocklists: NSFW (domains)",
+      "repo": "hagezi/dns-blocklists",
+      "branch": "main",
+      "path": "wildcard/nsfw-onlydomains.txt",
+      "commit": "fe713e1806d89e87582ad905eaa3fa6bed621b84",
+      "url": "https://raw.githubusercontent.com/hagezi/dns-blocklists/fe713e1806d89e87582ad905eaa3fa6bed621b84/wildcard/nsfw-onlydomains.txt",
+      "sha256": "37b824bfa4d9694c11a004ea3ae0afdf00b303d808d8404a6327acf4f83d8e6e",
+      "license": "GPL-3.0",
+      "licenseFile": "LICENSE",
+      "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "homepage": "https://github.com/hagezi/dns-blocklists",
+      "attribution": "HaGeZi"
+    },
+    {
+      "id": "oisd-nsfw",
+      "name": "oisd nsfw (domains, wildcard form)",
+      "repo": "sjhgvr/oisd",
+      "branch": "main",
+      "path": "domainswild2_nsfw.txt",
+      "commit": "31fd2dd680316021237eb5423caf93400541cdf4",
+      "url": "https://raw.githubusercontent.com/sjhgvr/oisd/31fd2dd680316021237eb5423caf93400541cdf4/domainswild2_nsfw.txt",
+      "sha256": "52874bea2fb77a9845ab553a2d9b8770e7b64f3ec640e79f6a00ea0f3fd19be2",
+      "license": "GPL-3.0",
+      "licenseFile": "LICENSE",
+      "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "homepage": "https://oisd.nl",
+      "attribution": "Stephan van Ruth (oisd)"
+    }
+  ],
+  "publicSuffixList": {
+    "repo": "publicsuffix/list",
+    "branch": "main",
+    "path": "public_suffix_list.dat",
+    "commit": "9dfbe81931367b3f0af21035c36ae7eeb830dd88",
+    "url": "https://raw.githubusercontent.com/publicsuffix/list/9dfbe81931367b3f0af21035c36ae7eeb830dd88/public_suffix_list.dat",
+    "sha256": "d3e6243b51695327984abb3e2a5aa7077096867f75121e031e6a5a3840ca8bcd",
+    "license": "MPL-2.0",
+    "homepage": "https://publicsuffix.org"
+  },
+  "tranco": {
+    "listId": "PYK6J",
+    "top": 10000,
+    "url": "https://tranco-list.eu/download/PYK6J/10000",
+    "sha256": "3536af07f9edee6f344785234a67ccae8885c5854d66ddf7f7485371d7ca45cd",
+    "homepage": "https://tranco-list.eu"
+  }
+}
