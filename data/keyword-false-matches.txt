@@ -115,7 +115,6 @@ safe hotmess
 safe cacamba          # Portuguese: skips (dumpsters)
 safe orcamento        # Portuguese: quotes
 safe cambs            # Cambridgeshire
-safe chatgpt
 safe analys
 safe lesbleus         # French: "Les Bleus", the national football team
 safe matured
