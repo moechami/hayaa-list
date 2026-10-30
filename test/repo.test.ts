@@ -290,11 +290,19 @@ describe('reviewed decisions in data/', () => {
   test('class rules in the subdomain review are only for platforms of independent sites; never itch.io', () => {
     const classes = [...subs].filter((s) => s.startsWith('*.'))
     assert.deepEqual(classes.sort(), [
-      '*.b-cdn.net', '*.blig.ig.com.br', '*.blogs.sapo.pt', '*.canalblog.com', '*.cdn.ampproject.org', '*.deviantart.com', '*.disqus.com',
-      '*.free.fr', '*.hpg.ig.com.br', '*.livejournal.com', '*.medium.com', '*.mybluehost.me', '*.mystrikingly.com', '*.narod.ru',
+      '*.b-cdn.net', '*.blig.ig.com.br', '*.blogs.sapo.pt', '*.blogspot.com', '*.cdn.ampproject.org', '*.deviantart.com', '*.disqus.com',
+      '*.free.fr', '*.hpg.ig.com.br', '*.livejournal.com', '*.medium.com', '*.mybluehost.me', '*.mystrikingly.com',
       '*.netfirms.com', '*.newgrounds.com', '*.ning.com', '*.over-blog.com', '*.paginas.sapo.pt', '*.rncdn7.com', '*.squarespace.com',
       '*.tumblr.com', '*.weebly.com', '*.wix.com', '*.wordpress.com',
     ])
+    // canalblog and narod.ru sampled weak: pending, with their explicit pages reviewed one by one.
+    const pendingLines = lines('data/pending-review.txt')
+    for (const p of ['*.canalblog.com', '*.narod.ru']) assert.ok(pendingLines.includes(p), p)
+    const canal = [...subs].filter((s) => s.endsWith('.canalblog.com') && !s.startsWith('*.'))
+    const narod = [...subs].filter((s) => s.endsWith('.narod.ru') && !s.startsWith('*.'))
+    assert.ok(canal.length > 900 && narod.length > 50, `${canal.length} ${narod.length}`)
+    for (const h of [...canal, ...narod]) assert.match(h, /porn|xxx|sex|hentai|nsfw|milf|fuck|puss|dick|cock|tits|boob|escort|erot|salope|cochonne|baise|plan-?cul|godemich|masturb|branl|orgasm|sodomi|bdsm|fetis|fetich|domina|exhib|voyeur|libertin|echangis|candaul|beurette|shemale|tranny|gangbang|bukkake|nympho|soumise|esclave|cuckold|swing|creampie|blowjob|fellation|zoophil|incest|nude|naked|preteen|lolita|beastual|rape-|wife/, h)
+    for (const h of ['homosexuel.canalblog.com', 'lespetitsoiseaux.canalblog.com', 'dsetsalopette.canalblog.com', 'conseilsexologie.canalblog.com', 'sexist.canalblog.com']) assert.ok(!subs.has(h), h)
     // itch.io pages are reviewed one by one; the rest wait in pending-review.
     assert.ok(lines('data/pending-review.txt').includes('*.itch.io'))
     assert.ok([...subs].some((s) => s.endsWith('.itch.io') && !s.startsWith('*.')))
@@ -341,6 +349,13 @@ describe('reviewed decisions in data/', () => {
     // Every host with "lutheran" in its name that any source lists.
     const lutheran = [...allow].filter((a) => a.includes('lutheran') && a.startsWith('*.'))
     assert.ok(lutheran.length >= 24, String(lutheran.length))
+  })
+
+  test('pp.ru pages are allowlisted, and the ordinary blogspot blogs the audit found', () => {
+    assert.ok(allow.has('*.pp.ru'))
+    for (const h of ['bestamazonshoes.blogspot.com', 'puntoinfinito.blogspot.com', 'adventuresincyberia.blogspot.com', 'gamesvideossaga.blogspot.com', 'thecmthrone.blogspot.com', 'pharmacysearch-all.blogspot.com']) {
+      assert.ok(allow.has(h), h)
+    }
   })
 
   test('the false positives found by the top-10,000 subdomain review are allowlisted', () => {

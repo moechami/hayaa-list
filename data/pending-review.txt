@@ -26,6 +26,8 @@
 *.home.sapo.pt        # SAPO personal pages; most names unclear
 *.com.sapo.pt         # SAPO personal pages; most names unclear
 *.do.sapo.pt          # SAPO personal pages; most names unclear
+*.canalblog.com       # blogs; a second sample was about 60% explicit; explicit names are reviewed one by one
+*.narod.ru            # personal pages; sample about half explicit; explicit names are reviewed one by one
 
 # --- Single hosts whose names are not clearly adult (2026-10-30) ---
 300dates.hop.clickbank.net

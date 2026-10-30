@@ -437,6 +437,7 @@ blog5.fc2.com                            # FC2 blog server, shared by many blogs
 blog91.fc2.com                           # FC2 blog server, shared by many blogs
 blacklivesmatter.co.com                  # campaign site, not adult (its parent co.com is a public suffix, so the subdomain gate does not see it)
 jokes.pp.ru                              # jokes site, not adult (its parent pp.ru is a public suffix, so the subdomain gate does not see it)
+*.pp.ru                                  # personal pages under a public suffix: every listed one (koi8, texts, anti-copyright, nagual, ache, giger) is ordinary
 
 # --- Recovery, abuse-prevention and rehabilitation sites (with everything under them, 2026-10-30, second review) ---
 # Also removed by the protected-name gate where a term matches; listed here so no
@@ -622,3 +623,13 @@ jokes.pp.ru                              # jokes site, not adult (its parent pp.
 *.hairmagicianunisexsalon.com           # hair salon
 *.maryelschool.org                      # school
 *.endepot.com                           # shop
+
+# --- Ordinary blogs on blogspot.com (2026-10-30) ---
+# blogspot.com is accepted as a per-user platform (data/reviewed-top-site-subdomains.txt);
+# these listed blogs are ordinary by name.
+bestamazonshoes.blogspot.com             # shoe shopping blog
+puntoinfinito.blogspot.com               # personal blog
+adventuresincyberia.blogspot.com         # technology blog
+gamesvideossaga.blogspot.com             # video games blog
+thecmthrone.blogspot.com                 # personal blog
+pharmacysearch-all.blogspot.com          # pharmacy search
