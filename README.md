@@ -100,10 +100,14 @@ allowlisted by name.
 
 The Block List Project built its list partly by matching words such as
 "sex" inside names, which also caught Essex, Sussex, the surname Sexton and
-"homes exteriors". For hosts that only that source lists,
-`data/keyword-false-matches.txt` names the non-sexual words and the
-sexual-looking substrings: a host is removed when every sexual-looking
-substring in it sits inside a non-sexual word.
+"homes exteriors", "news express" and "unisex salon". For hosts that only
+that source lists, `data/keyword-false-matches.txt` names the non-sexual
+words, safe words and the sexual-looking substrings: a host with a
+non-sexual word is removed when every sexual-looking token in it starts
+inside a non-sexual or safe word ("sussextiles": the "sext" starts inside
+"sussex"; "sussexphotobooth": the "hot" is inside "photo"). Safe words only
+hide short tokens such as "hot", "cam", "ass" and "tit"; they never make a
+host removable on their own.
 
 ### Review gates
 

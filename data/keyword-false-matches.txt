@@ -9,14 +9,23 @@
 #
 # A host is removed when
 #   - it is named on a "host" line, or
-#   - it contains at least one "benign" word, and every "sexual" substring
-#     in it lies inside a benign word.
-# So "essexroofing.co.uk" is removed, but "essexescorts.co.uk" ("escort"
-# outside the benign word) and "essexy.com" (not a benign word) stay.
+#   - it contains at least one "benign" word, and every "sexual" token in
+#     it STARTS inside a benign or "safe" word. The tokens are found at
+#     every position, so one that overlaps another is not missed.
+# So "essexroofing.co.uk" and "sussextiles.co.uk" (the "sext" starts inside
+# "sussex") are removed, but "essexescorts.co.uk" ("escort" outside the
+# benign word) and "essexy.com" (not a benign word) stay. A token that
+# starts in the last one or two letters of a word and runs past its end
+# ("camp" + "pussy") is not counted as inside it: at least min(3, its
+# length) of its letters must lie inside the word.
 #
 # Forms (patterns are JavaScript regular expressions, matched against the
 # whole lowercase host; no spaces, no "#"):
 #   benign <pattern>   a non-sexual word that contains a sexual-looking substring
+#   safe <pattern>     an ordinary word that hides a short token ("photo"
+#                      hides "hot", "camp" hides "cam", "assist" hides
+#                      "ass", "title" hides "tit"); it never makes a host
+#                      removable on its own, so "petites-salopes.com" stays
 #   sexual <pattern>   a sexual-looking substring; the list is deliberately
 #                      generous (it includes "hot", "cam", "girl"), because
 #                      a pattern here only ever keeps an entry listed
@@ -29,18 +38,98 @@
 # Essex only as a county: at the start, after "-" or ".", or after a place
 # word. "...es" + "sex" ("likessex", "couplessex") is never read as Essex.
 benign (?:^|[-.]|north|south|east|west|mid|new|the|of|in|for|and|herts|suffolk|kent|london|windsor)essex(?![eioy])  # English county
-benign sussex(?![eioy])        # English county
-benign wessex(?![eioy])        # English region
-benign middlesex(?![eioy])     # English county
+benign sussex                  # English county ("westsussexestateagents")
+benign wessex                  # English region ("wessexutilities")
+benign middlesex               # English county ("middlesexurology")
 benign sexton(?!ight)          # surname and church office; not "sex tonight"
 benign sexterior               # "...s exterior" (homes exteriors, brothers exteriors)
 benign (?:business|access|glass|class|cross|compass|brass|grass|process|success|fitness|wellness|wireless|address)-?ex(?![eioy])  # "business express", "access exchange", "glass expert"
 benign gasexchange             # gas exchange
+# A word ending in "s" followed by an ordinary "ex-" word: "twistedpretzels
+# express", "the news explainer", "two chairs exchange". Only after a letter
+# (a name starting "sexpert" is left alone), and not where the "ex-" word is
+# itself sexual ("exhibitionist", "exposed", "explicit", "extreme"). The word
+# covers only the "sex", so a token after it ("phonesextranny") is not hidden.
+benign (?<=[a-z])sex(?=press|pert|plor|plain|peri|pedi|po(?!s)|port|cel|chang|clusiv|pan|hibit(?!ionis)|ecut|am|tern|tend|tens|tra|cava|curs|cus|empt|empl|ercis|it(?![eya])|pens|pect|ceed|haust|termin)
+benign unisex                  # unisex salons and clothing
+benign sextant                 # navigation instrument
+benign s?lutheran              # "gs lutheran": the "slut" is in "s" + "lutheran"
+benign (?<=[a-z0-9])sex(?=tou(?!r))  # Brazilian "sextou" ("it's Friday"), betting-site names; not "sextour"
 benign adslaanbieders          # Dutch: ADSL providers
 benign gayrimenkul             # Turkish: real estate (emlak gayrimenkul)
 
+# --- Safe words for short tokens (hide them, never qualify a host) ---
+safe photo
+safe hotel
+safe shot
+safe camp
+safe camera
+safe cambridge
+safe assist
+safe assoc
+safe assess
+safe asset
+safe assur
+safe class
+safe glass
+safe grass
+safe brass
+safe bass
+safe pass
+safe embass
+safe title
+safe titan
+safe petit
+safe institut
+safe constitut
+safe competit
+safe appetit
+safe attitud
+safe stitch
+safe partit
+safe assign
+safe assert
+safe atlas
+safe manassas
+safe nassau
+safe cass
+safe mass(?!ag)       # Massachusetts, mass garage doors; not "massage"
+safe sportsmassag
+safe glove
+safe clover
+safe adulting
+safe document
+safe cummins
+safe evidenc
+safe divid
+safe vida
+safe vidhi
+safe video
+safe epic
+safe spic[ey]         # spice, spicy
+safe tropic
+safe pick
+safe hottub
+safe hotchil
+safe hotmess
+safe cacamba          # Portuguese: skips (dumpsters)
+safe orcamento        # Portuguese: quotes
+safe cambs            # Cambridgeshire
+safe chatgpt
+safe analys
+safe lesbleus         # French: "Les Bleus", the national football team
+safe matured
+safe cruises
+# Top-level domains that contain a token (.pics, .cam, .chat, .date, .love, .video, .cruises)
+safe \.(?:pics|pictures|cam|camera|camp|chat|date|dating|love|video|photos?|tube|cruises)$
+
 # --- Sexual-looking substrings (checked in this order) ---
 sexual domina
+sexual shemale
+sexual trann
+sexual panty
+sexual voyeur
+sexual 18plus
 sexual gangbang
 sexual glamour
 sexual grann
@@ -123,3 +212,50 @@ host burkesvillechurchofchrist.com   # a church
 host northwoodsbaptistchurch.net     # a church
 host thirdavenueunitedchurch.com     # a church
 host adulted.about.com               # adult education articles
+host cowgirlsexpresstruckingllc.com  # trucking company ("Cowgirls Express")
+host datcamaringayrimenkul.com       # Turkish real estate
+host datesexport.com                 # dates (fruit) exporter
+host hotandcoldwellnessexpo.com      # wellness exhibition
+host lameassexcuses.com              # "lame excuses" blog
+host lovethisexperience.com          # travel experiences
+host massagechairsexpress.com        # massage chair shop
+host ofertassexclusivas.shop         # Spanish: exclusive offers
+host terrassexpert.com               # terrace builders
+host princessexpert.com              # "princess expert" (party services)
+host shoeloversexpo.com              # shoe exhibition
+host theaterloversexperience.com     # theatre experiences
+host unisexxnailpolish.com           # nail polish
+host furfangsexoticsexpo.com         # exotic pets exhibition
+host wessexk9massage.co.uk           # dog massage
+host gofassexpress.com                # courier ("Gofas Express")
+host princespaunisexmassage.store     # unisex spa
+host essex-male-massage-and-skin-studio.co.uk # massage and skin studio
+host vidsexport.com                   # "vids export", not explicit
+host vidsexchange.com                 # "vids exchange", not explicit
+host teensexcelling.pics              # "teens excelling", not explicit
+host glossexpress.chat.blip.ai        # shop chat bot
+host picsexpress.com                  # photo printing
+host propicsexpress.com               # photo printing
+host clarityvidsexpert.xyz            # video services
+host girlsexplorer.com                # "girls explorer", not explicit
+host chigirlessentialsextensions.com  # hair extensions
+host novahottesexpert.com             # not explicit by name
+host wassexpress.com                  # courier
+host dungeonsofwessex.co.uk           # game ("Dungeons of Wessex")
+host dungeonsofwessex.com             # game ("Dungeons of Wessex")
+host badassexperience.com             # "badass experience", not explicit
+host marlene-sexton-pics.tumblr.com   # a person named Sexton
+host thegoddessexperiencenc.com       # "goddess experience", not explicit
+host sexpertsexpertise.tumblr.com     # sex education blog
+host sextonsnapchat.tumblr.com        # a person named Sexton
+host sussexdating.co.uk               # dating site, not explicit
+host essexgirlsonly.tumblr.com        # "Essex girls only", not explicit
+host winxxsextou.com                  # betting site ("sextou", Brazilian "it is Friday")
+host xx11sextou.com                   # betting site ("sextou", Brazilian "it is Friday")
+host xx666sextou.com                  # betting site ("sextou", Brazilian "it is Friday")
+host xx777sextou.com                  # betting site ("sextou", Brazilian "it is Friday")
+host xx8sextou.com                    # betting site ("sextou", Brazilian "it is Friday")
+host xxaasextou.com                   # betting site ("sextou", Brazilian "it is Friday")
+host xxggsextou.com                   # betting site ("sextou", Brazilian "it is Friday")
+host xxvipsextou.com                  # betting site ("sextou", Brazilian "it is Friday")
+host zzxxsextou.com                   # betting site ("sextou", Brazilian "it is Friday")

@@ -14,6 +14,7 @@ import { decodeHayaaList } from '../src/format'
 import { GateError, runBuild, type BuildInput } from '../src/pipeline'
 import {
   isKeywordFalseMatch,
+  keywordTokens,
   nameLabels,
   parseKeywordRules,
   parseProtectedTerms,
@@ -130,11 +131,41 @@ describe('false keyword matches', () => {
     assert.equal(isKeywordFalseMatch(rules, 'church.example.com'), true) // a host line
   })
 
+  test('a token counts only when it does not START inside a benign word (the boundary bug: "sext" in "sussextiles")', () => {
+    const r = parseKeywordRules('benign sussex\nbenign middlesex\nsexual sex[eiostuy]\nsexual sex\nsexual porn\nsexual xx\nsexual xxx\n', normalizeDomainInput)
+    assert.equal(isKeywordFalseMatch(r, 'sussextiles.co.uk'), true) // "sext" starts inside "sussex", ends after it
+    assert.equal(isKeywordFalseMatch(r, 'westsussexestateagents.co.uk'), true)
+    assert.equal(isKeywordFalseMatch(r, 'middlesexurology.com'), true)
+    assert.equal(isKeywordFalseMatch(r, 'sussexporn.com'), false) // "porn" starts after the word
+    assert.equal(isKeywordFalseMatch(r, 'sussexxx.com'), false) // "xxx" starts in the word's last letter and runs on
+    assert.equal(isKeywordFalseMatch(r, 'sussexsex.com'), false)
+  })
+
+  test('safe words hide short tokens but never make a host removable on their own', () => {
+    const r = parseKeywordRules('benign sussex\nbenign middlesex\nsafe photo\nsafe assist\nsafe camp\nsafe atlas\nbenign sexpo\nsexual sex\nsexual hot\nsexual ass\nsexual cam\nsexual puss\n', normalizeDomainInput)
+    assert.equal(isKeywordFalseMatch(r, 'sussexphotobooth.co.uk'), true)
+    assert.equal(isKeywordFalseMatch(r, 'lockassistancemiddlesex.co.uk'), true)
+    assert.equal(isKeywordFalseMatch(r, 'campmiddlesex.org'), true)
+    assert.equal(isKeywordFalseMatch(r, 'atlassexpo.com'), true) // "ass" lies inside "atlas" + "sexpo"
+    assert.equal(isKeywordFalseMatch(r, 'bestphotos.com'), false) // a safe word alone: not removable
+    assert.equal(isKeywordFalseMatch(r, 'campussymiddlesex.com'), false) // "puss" starts in "camp"'s last letter and runs on
+    assert.equal(isKeywordFalseMatch(r, 'hotsussex.com'), false) // "hot" outside every word
+  })
+
+  test('every token is found, even one overlapping another', () => {
+    const r = parseKeywordRules('benign essex\nsexual sex\nsexual xxx\nsexual xx\n', normalizeDomainInput)
+    const tokens = keywordTokens(r, 'essexxx.com').map((t) => `${t.start}:${t.token}:${t.hidden}`)
+    assert.ok(tokens.includes('2:sex:true'))
+    assert.ok(tokens.includes('4:xxx:false') || tokens.includes('4:xx:false'), tokens.join(' '))
+  })
+
   test('the rule file is validated', () => {
     assert.throws(() => parseKeywordRules('benign (\nsexual sex\n', normalizeDomainInput), /not a valid regular expression/)
     assert.throws(() => parseKeywordRules('benign a*\nsexual sex\n', normalizeDomainInput), /matches the empty string/)
     assert.throws(() => parseKeywordRules('benign essex\n', normalizeDomainInput), /at least one benign and one sexual/)
     assert.throws(() => parseKeywordRules('other x\nbenign a\nsexual b\n', normalizeDomainInput), /unknown kind/)
+    assert.throws(() => parseKeywordRules('safe photo\nsexual hot\n', normalizeDomainInput), /at least one benign and one sexual/)
+    assert.throws(() => parseKeywordRules('safe x?\nbenign a\nsexual b\n', normalizeDomainInput), /matches the empty string/)
     assert.throws(() => parseKeywordRules('host WWW.A.COM\nbenign a\nsexual b\n', normalizeDomainInput), /not a normalized host/)
   })
 
@@ -224,10 +255,27 @@ describe('the committed data files', () => {
 
   test('data/keyword-false-matches.txt parses and behaves on known names', () => {
     const k = parseKeywordRules(read('data/keyword-false-matches.txt'), normalizeDomainInput)
-    for (const h of ['essexroofing.co.uk', 'westsussexweekly.co.uk', 'middlesexcollege.com', 'jeffsexteriorservices.com', 'glassexpanse.info', 'gasexchange.net', 'adslaanbieders.nl', 'kartalgayrimenkul.com', 'adulted.about.com']) {
+    for (const h of [
+      'essexroofing.co.uk', 'westsussexweekly.co.uk', 'middlesexcollege.com', 'jeffsexteriorservices.com', 'glassexpanse.info', 'gasexchange.net',
+      'adslaanbieders.nl', 'kartalgayrimenkul.com', 'adulted.about.com',
+      // The second audit: the boundary bug, short tokens inside safe words, and "s" + an ordinary "ex-" word.
+      'sussextiles.co.uk', 'westsussexestateagents.co.uk', 'wessexutilities.co.uk', 'middlesexurology.com', 'sussexphotobooth.co.uk',
+      'lockassistancemiddlesex.co.uk', 'campmiddlesex.org', 'twistedpretzelsexpress.com', 'thenewsexpressbd.com', 'twochairsexchange.ca',
+      'themindsexplorer.com', 'themillennialsexpert.com', 'thenavarrosexperiences.com', 'thenjsexport.shop', 'themirrorunisexsalon.in',
+      'cursosexpertos.org', 'tworiversexcavatlng.com', 'thenewsexplainer.com', 'wilsonsexecutivecars.co.uk', 'nexusexpeditions.com',
+      'coastslotsexchange.shop', 'habanosexclusive.com', 'focusexpand.com', 'footnotesexhibition.ca', 'crushthisexam.com', 'serviciosexternosadm.com',
+      'linksysextendersetupp.com', 'focusexcellence.com', 'cosmosextracts.com', 'sextants.sbs', 'gslutheran.com', '1012betsextou.com', 'atlassexpo.com',
+    ]) {
       assert.equal(isKeywordFalseMatch(k, h), true, h)
     }
-    for (const h of ['essexescorts.co.uk', 'couplessex.com', 'shelikessex.tumblr.com', 'princessexy.com', 'sextonight.com', 'essexgangbang.co.uk', 'missexhibitionist.tumblr.com', 'lessexophiles.com']) {
+    for (const h of [
+      'essexescorts.co.uk', 'couplessex.com', 'shelikessex.tumblr.com', 'princessexy.com', 'sextonight.com', 'essexgangbang.co.uk', 'missexhibitionist.tumblr.com',
+      'lessexophiles.com',
+      // Explicit words next to an "ex-" word, and "ex-" words that are themselves sexual.
+      'phonesexaction.com', 'teensexposed.net', 'twistysexposed.com', 'xxxsexhibitionists.com', 'adultsextrailers.nl', 'thaisextour.com',
+      'shemalesexplorer.com', 'phonesextranny.com', 'voyeurmeetsexhibitionest.tumblr.com', 'videosexitalia.it', 'amateursexamateurs.com',
+      'essexsexshop.com', 'freesexpornvideo.com', 'bestsexite.com',
+    ]) {
       assert.equal(isKeywordFalseMatch(k, h), false, h)
     }
   })

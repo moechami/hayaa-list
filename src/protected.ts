@@ -27,9 +27,12 @@
 //    were built partly by matching words such as "sex" inside names, which
 //    also catches "essex" and "sexton". For hosts that ONLY such a source
 //    lists, data/keyword-false-matches.txt names benign words (regular
-//    expressions) and sexual-looking substrings: a host with a benign word
-//    and no sexual-looking substring outside every benign word is removed.
-//    It also names single hosts ("host <name>").
+//    expressions), safe words and sexual-looking substrings: a host with a
+//    benign word, whose every sexual-looking token starts inside a benign
+//    or safe word, is removed ("sussextiles": the "sext" starts inside
+//    "sussex"). Safe words ("photo", "camp") only hide short tokens such as
+//    "hot" and "cam"; they never make a host removable on their own. It
+//    also names single hosts ("host <name>").
 
 import { readDataLines } from './parse'
 import { registrableDomain, type PublicSuffixList } from './psl'
@@ -129,11 +132,21 @@ export const parseReasonedHosts = (text: string, what: string, normalize: (h: st
   return out
 }
 
-export type KeywordRules = { benign: RegExp[]; sexual: RegExp; hosts: Set<string> }
+export type KeywordRules = {
+  /** Non-sexual words that contain a sexual-looking substring; a host needs one to be removed. */
+  benign: RegExp[]
+  /** Ordinary words that hide a short sexual-looking token ("photo", "camp") but never qualify a host on their own. */
+  safe: RegExp[]
+  /** Every sexual-looking pattern as one sticky alternation, and each on its own (sticky). */
+  sexual: RegExp
+  sexualEach: RegExp[]
+  hosts: Set<string>
+}
 
 /** data/keyword-false-matches.txt → rules. Every regular expression must compile and must not match "". */
 export const parseKeywordRules = (text: string, normalize: (h: string) => string | null): KeywordRules => {
   const benign: RegExp[] = []
+  const safe: RegExp[] = []
   const sexual: string[] = []
   const hosts = new Set<string>()
   for (const line of readDataLines(text)) {
@@ -146,7 +159,7 @@ export const parseKeywordRules = (text: string, normalize: (h: string) => string
       hosts.add(value)
       continue
     }
-    if (kind !== 'benign' && kind !== 'sexual') throw new Error(`keyword-false-matches: unknown kind "${kind}"`)
+    if (kind !== 'benign' && kind !== 'safe' && kind !== 'sexual') throw new Error(`keyword-false-matches: unknown kind "${kind}"`)
     let re: RegExp
     try {
       re = new RegExp(value, 'g')
@@ -155,36 +168,76 @@ export const parseKeywordRules = (text: string, normalize: (h: string) => string
     }
     if (re.test('')) throw new Error(`keyword-false-matches: "${value}" matches the empty string`)
     if (kind === 'benign') benign.push(re)
+    else if (kind === 'safe') safe.push(re)
     else sexual.push(value)
   }
   if (benign.length === 0 || sexual.length === 0) throw new Error('keyword-false-matches: needs at least one benign and one sexual pattern')
-  return { benign, sexual: new RegExp(sexual.join('|'), 'g'), hosts }
+  return { benign, safe, sexual: new RegExp(sexual.join('|'), 'y'), sexualEach: sexual.map((s) => new RegExp(s, 'y')), hosts }
 }
 
-/**
- * True when every sexual-looking substring of `host` lies inside a benign
- * word and the host has at least one benign word: the name is in the list
- * only because a keyword matched inside an ordinary word. Also true for a
- * host named on a "host" line.
- */
-export const isKeywordFalseMatch = (rules: KeywordRules, host: string): boolean => {
-  if (rules.hosts.has(host)) return true
-  const spans: [number, number][] = []
-  for (const re of rules.benign) {
+/** Every [start, end) where one of `patterns` matches in `host`. */
+const spansOf = (patterns: readonly RegExp[], host: string): [number, number][] => {
+  const out: [number, number][] = []
+  for (const re of patterns) {
     re.lastIndex = 0
     for (let m = re.exec(host); m !== null; m = re.exec(host)) {
-      spans.push([m.index, m.index + m[0].length])
+      out.push([m.index, m.index + m[0].length])
       if (m[0].length === 0) re.lastIndex++
     }
   }
-  if (spans.length === 0) return false
-  const s = rules.sexual
-  s.lastIndex = 0
-  for (let m = s.exec(host); m !== null; m = s.exec(host)) {
-    const start = m.index
-    const end = start + m[0].length
-    if (!spans.some(([a, b]) => start >= a && end <= b)) return false
-    if (m[0].length === 0) s.lastIndex++
+  return out
+}
+
+const matchesAt = (re: RegExp, host: string, i: number): RegExpExecArray | null => {
+  re.lastIndex = i
+  return re.exec(host)
+}
+
+/**
+ * The sexual-looking tokens of `host`, each at the position it starts, and
+ * whether a safe word hides it. A token is hidden when it starts inside a
+ * benign or safe word ("sussex" hides the "sext" of "sussextiles", "photo"
+ * the "hot" of "photobooth"), with one guard: a token that starts in the
+ * last one or two letters of the word and runs past its end ("camp" +
+ * "pussy") shares too little with it to be part of it, and is not hidden.
+ * In general a token is hidden when at least min(3, its length) of its
+ * letters, from its start, lie inside words (two adjacent words count as
+ * one: the "ass" of "atlassexpo" lies inside "atlas" + "sexpo").
+ */
+export const keywordTokens = (rules: KeywordRules, host: string): { start: number; token: string; hidden: boolean }[] => {
+  const spans = [...spansOf(rules.benign, host), ...spansOf(rules.safe, host)]
+  // For each position, where the run of letters covered by words (adjacent
+  // words joined: "atlas" + "sexpo") that starts there ends; -1 when none.
+  const covered = new Array<boolean>(host.length + 1).fill(false)
+  for (const [a, b] of spans) for (let i = a; i < b; i++) covered[i] = true
+  const reach = new Array<number>(host.length + 1).fill(-1)
+  for (let i = host.length - 1; i >= 0; i--) if (covered[i]) reach[i] = covered[i + 1] ? reach[i + 1] : i + 1
+  const out: { start: number; token: string; hidden: boolean }[] = []
+  for (let i = 0; i < host.length; i++) {
+    const end = reach[i]
+    if (end < 0 || end - i >= 3) {
+      // Outside every word, or at least three letters from its end: one alternative decides.
+      const m = matchesAt(rules.sexual, host, i)
+      if (m) out.push({ start: i, token: m[0], hidden: end >= 0 })
+      continue
+    }
+    // In the last one or two letters of a word: every alternative is checked, so a long token cannot hide behind a short one.
+    for (const re of rules.sexualEach) {
+      const m = matchesAt(re, host, i)
+      if (m) out.push({ start: i, token: m[0], hidden: i + m[0].length <= end })
+    }
   }
-  return true
+  return out
+}
+
+/**
+ * True when the host has at least one benign word and every sexual-looking
+ * token in it is hidden by a benign or safe word (keywordTokens): the name
+ * is in the list only because a keyword matched inside ordinary words. Also
+ * true for a host named on a "host" line.
+ */
+export const isKeywordFalseMatch = (rules: KeywordRules, host: string): boolean => {
+  if (rules.hosts.has(host)) return true
+  if (spansOf(rules.benign, host).length === 0) return false
+  return keywordTokens(rules, host).every((t) => t.hidden)
 }
