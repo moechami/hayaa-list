@@ -8,7 +8,12 @@ dist-*/
 !keys/*.pub.pem
 *.key
 
+# Local secrets: never committed.
+.env
+.env.*
+
 # Monthly job working folders
 previous/
 notes/
 release/
+signatures/

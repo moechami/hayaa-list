@@ -11,7 +11,8 @@ body:
         do not open this issue.
 
         Every report is checked by hand. A wrong entry goes on the allowlist with
-        a reason and the fix ships in the next monthly release.
+        a reason, and the correction is included in the next release that is
+        published (one is attempted every month).
   - type: input
     id: address
     attributes:

@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Invariants of the repository itself: the release workflow's safety
 // properties, the reporting templates, licence statements, and the reviewed
 // decisions recorded in data/. These are plain text checks, so a later edit
 // that drops one of them fails here before it reaches a release.
 
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
@@ -25,7 +28,9 @@ const job = (yml: string, name: string): string => {
 describe('monthly release workflow', () => {
   const yml = read('.github/workflows/monthly.yml')
   const build = job(yml, 'build')
-  const release = job(yml, 'release')
+  const sign = job(yml, 'sign')
+  const publish = job(yml, 'publish')
+  const review = job(yml, 'report-review')
 
   test('every action is pinned to a full commit SHA', () => {
     for (const wf of readdirSync(join(ROOT, '.github/workflows'))) {
@@ -33,45 +38,75 @@ describe('monthly release workflow', () => {
     }
   })
 
-  test('the release job runs from main only, in the protected environment', () => {
-    assert.match(release, /\n {4}if: github\.ref == 'refs\/heads\/main'\n/)
-    assert.match(release, /\n {4}environment: release\n/)
-    assert.doesNotMatch(build, /secrets\./)
+  test('only the sign job sees the key: from main, in the protected environment, with no permissions', () => {
+    assert.match(sign, /\n {4}if: github\.ref == 'refs\/heads\/main'\n/)
+    assert.match(sign, /\n {4}environment: release\n/)
+    assert.match(sign, /\n {4}permissions: \{\}\n/)
+    assert.match(publish, /\n {4}if: github\.ref == 'refs\/heads\/main'\n/)
+    for (const other of [build, publish, review, job(yml, 'report-failure')]) assert.doesNotMatch(other, /secrets\.|LIST_SIGNING_KEY/)
+    assert.equal((yml.match(/secrets\./g) ?? []).length, 1)
   })
 
-  test('signs with OpenSSL from the environment, never a key file, then verifies twice', () => {
-    assert.match(release, /openssl dgst -sha256 -sign <\(printf '%s\\n' "\$LIST_SIGNING_KEY"\) -out release\/manifest\.json\.sig release\/manifest\.json/)
+  test('the sign job runs OpenSSL and nothing else: no checkout, no npm or tsx, no token', () => {
+    for (const forbidden of [/actions\/checkout/, /\bnpm\b/, /\bnpx\b/, /\btsx\b/, /\bnode\b/, /github\.token|GITHUB_TOKEN|GH_TOKEN/, /\bgh /]) {
+      assert.doesNotMatch(sign, forbidden)
+    }
+    assert.match(sign, /for f in manifest\.json build-info\.json sources\.lock\.json; do/)
+    assert.match(sign, /openssl dgst -sha256 -sign <\(printf '%s\\n' "\$LIST_SIGNING_KEY"\) -out "signatures\/\$f\.sig" "release\/\$f"/)
     assert.doesNotMatch(yml, /npm run sign/)
     assert.doesNotMatch(yml, /echo "\$LIST_SIGNING_KEY"|LIST_SIGNING_KEY" >|key\.pem/)
-    assert.match(release, /openssl dgst -sha256 -verify "keys\/\$key_id\.pub\.pem"/)
-    assert.match(release, /npm run verify -- --dir release/)
-    const sign = release.indexOf('-sign <(')
-    assert.ok(sign < release.indexOf('-verify "keys') && sign < release.indexOf('npm run verify') && release.indexOf('npm run verify') < release.indexOf('gh release create'))
   })
 
-  test('compares against the previous release and checks the serial against every release', () => {
+  test('the publish job, without the key, checks the serial and verifies every signature twice before publishing', () => {
+    assert.match(publish, /needs: \[build, sign\]/)
+    assert.match(publish, /test "\$\(node -p "require\('\.\/release\/manifest\.json'\)\.serial"\)" = "\$SERIAL"/)
+    assert.match(publish, /npm run check-serial -- --repo "\$GITHUB_REPOSITORY" --serial "\$SERIAL"/)
+    assert.match(publish, /for f in manifest\.json build-info\.json sources\.lock\.json; do\n\s+openssl dgst -sha256 -verify "keys\/\$key_id\.pub\.pem" -signature "release\/\$f\.sig" "release\/\$f"/)
+    assert.match(publish, /npm run verify -- --dir release --release/)
+    const at = (s: string): number => publish.indexOf(s)
+    assert.ok(at('= "$SERIAL"') < at('-verify "keys') && at('-verify "keys') < at('npm run verify') && at('npm run verify') < at('gh release create'))
+  })
+
+  test('nothing is committed to main: no checkout history, no push, no recorded lock', () => {
+    assert.doesNotMatch(yml, /fetch-depth/)
+    assert.doesNotMatch(yml, /git push|git commit|gh auth setup-git|contents: write[\s\S]*Record/)
+    assert.doesNotMatch(yml, /cp release\/sources\.lock\.json sources\.lock\.json/)
+  })
+
+  test('compares against the signed previous release and checks the serial against every release', () => {
     assert.match(build, /npm run fetch-previous -- --repo "\$GITHUB_REPOSITORY" --out previous/)
     assert.match(build, /npm run update-lock -- --fallback-lock previous\/sources\.lock\.json --notes notes\/lock\.txt/)
-    assert.match(build, /npm run build -- --previous previous/)
+    assert.match(build, /npm run build -- --previous previous\n/)
     assert.match(build, /npm run build -- --out dist-repro --previous previous/)
     assert.match(build, /starter\.bin manifest\.json build-info\.json; do/)
-    assert.match(release, /npm run check-serial -- --repo "\$GITHUB_REPOSITORY" --serial "\$SERIAL"/)
+    assert.match(build, /npm run check-serial -- --repo "\$GITHUB_REPOSITORY" --serial "\$SERIAL"/)
   })
 
-  test('every release carries LICENSE, CREDITS.md and build-info.json', () => {
-    const publish = release.slice(release.indexOf('gh release create'))
-    for (const f of ['release/LICENSE', 'release/CREDITS.md', 'release/build-info.json', 'release/sources.lock.json', 'release/manifest.json.sig']) {
-      assert.ok(publish.includes(f), f)
+  test('every release carries the signed files, LICENSE and CREDITS.md', () => {
+    const create = publish.slice(publish.indexOf('gh release create'))
+    for (const f of [
+      'release/LICENSE', 'release/CREDITS.md', 'release/build-info.json', 'release/build-info.json.sig', 'release/sources.lock.json',
+      'release/sources.lock.json.sig', 'release/manifest.json', 'release/manifest.json.sig', 'release/starter.bin',
+    ]) {
+      assert.ok(create.includes(f), f)
     }
     assert.match(build, /cp sources\.lock\.json LICENSE CREDITS\.md release\//)
   })
 
-  test('records the lock on main after publishing (keep-alive), and reports what needs review', () => {
-    const record = release.indexOf('Record the release')
-    assert.ok(record > release.indexOf('gh release create'))
-    assert.match(release, /cp release\/sources\.lock\.json sources\.lock\.json/)
-    assert.match(release, /git push origin HEAD:main/)
-    assert.match(job(yml, 'report-review'), /gh issue create/)
+  test('gate overrides are workflow inputs and are shown in the release notes', () => {
+    assert.match(yml, /\n {6}allow_shrink:\n/)
+    assert.match(yml, /\n {6}allow_growth:\n/)
+    assert.match(build, /HAYAA_LIST_ALLOW_SHRINK: \$\{\{ inputs\.allow_shrink && '1' \|\| '0' \}\}/)
+    assert.match(build, /HAYAA_LIST_ALLOW_GROWTH: \$\{\{ inputs\.allow_growth && '1' \|\| '0' \}\}/)
+    assert.match(publish, /Gate overrides used for this release: allow_shrink \$ALLOW_SHRINK, allow_growth \$ALLOW_GROWTH/)
+  })
+
+  test('review issues are opened even when a later job failed, from sanitised text only', () => {
+    assert.match(review, /\n {4}if: always\(\) && needs\.build\.result == 'success' && needs\.build\.outputs\.review != '0'\n/)
+    assert.match(review, /needs: \[build, sign, publish\]/)
+    assert.match(build, /npx --no-install tsx scripts\/issue-body\.ts --notes notes --out notes\/issue-body\.md/)
+    assert.match(review, /cat notes\/issue-body\.md/)
+    assert.doesNotMatch(review, /held-back\.txt|lock\.txt/) // never the raw notes
     assert.match(job(yml, 'report-failure'), /if: failure\(\)/)
   })
 })
@@ -79,12 +114,34 @@ describe('monthly release workflow', () => {
 describe('staleness workflow', () => {
   const yml = read('.github/workflows/staleness.yml')
 
-  test('weekly, opens an issue past 35 days, keeps the schedules enabled', () => {
+  test('weekly, opens an issue past 35 days, keeps the schedules enabled (the only keep-alive)', () => {
     assert.match(yml, /cron: '[0-9]+ [0-9]+ \* \* [0-6]'/)
     assert.match(yml, /MAX_AGE_DAYS: 35/)
     assert.match(yml, /gh issue create/)
     assert.match(yml, /gh workflow enable monthly\.yml/)
+    assert.match(yml, /gh workflow enable staleness\.yml/)
+    assert.match(yml, /actions: write/)
     assert.match(yml, /HTTP 404/) // no release yet is not an error, any other API failure is
+  })
+})
+
+describe('repository hygiene', () => {
+  test('.env files and private keys are never committed', () => {
+    const ignore = lines('.gitignore')
+    for (const p of ['.env', '*.pem', '!keys/*.pub.pem', '*.key']) assert.ok(ignore.includes(p), p)
+  })
+
+  test('the key checklist covers the protected environment, pinned actions and immutable releases', () => {
+    const keys = read('keys/README.md')
+    for (const re of [/umask 077/, /openssl pkey -pubin -in k1\.pub\.pem -outform DER \| openssl dgst -sha256/, /selected branches only, `main`/, /Required reviewers/, /Prevent self-review/, /Allow administrators to bypass: off/, /full-length commit SHA/, /immutable releases/]) {
+      assert.match(keys, re)
+    }
+    assert.doesNotMatch(read('README.md'), /bypass list/)
+  })
+
+  test('src/format.ts stays byte-identical to the app\'s copy (no header is added here)', () => {
+    const sha = createHash('sha256').update(readFileSync(join(ROOT, 'src/format.ts'))).digest('hex')
+    assert.equal(sha, '214f4e340046ed3f3de4e4ddb6e03bdcd3522050b17133c38767eb0989a07968')
   })
 })
 
@@ -109,6 +166,26 @@ describe('reporting and licences', () => {
     assert.match(readme, /only when the app is updated/)
     assert.match(readme, /attempts a release on the 1st of every month/)
     assert.match(readme, /held back/)
+  })
+
+  test('licence and attribution statements the audit asked for', () => {
+    const readme = read('README.md')
+    assert.match(readme, /the hand-kept files in `data\/`, and `sources\.lock\.json`/)
+    assert.match(readme, /Modification notice\*\* \(GPL-3\.0 section 5\(a\)\): this list merges,\nnormalises and filters/)
+    assert.match(readme, /used by the Hayaa app's Android\nBlocker from version 2\.0\.2/)
+    assert.match(readme, /### Protected-name gate/)
+    const credits = read('CREDITS.md')
+    assert.match(credits, /Copyright \(c\) Clefspeare13 pornhosts contributors/)
+    assert.match(credits, /Copyright \(c\) The Block List Project contributors/)
+    assert.match(credits, /Modification notice\*\* \(GPL-3\.0 section 5\(a\)\)/)
+  })
+
+  test('FORMAT.md: starter serial 0, the size range, and the hyphen rule readers must not apply', () => {
+    const format = read('docs/FORMAT.md')
+    assert.match(format, /header\nserial \*\*0\*\*/)
+    assert.match(format, /32 bytes to 96 MiB/)
+    assert.match(format, /HYPHEN_3_4/)
+    assert.match(format, /build-info\.json\.sig/)
   })
 })
 
@@ -166,11 +243,61 @@ describe('reviewed decisions in data/', () => {
     }
   })
 
-  test('class rules in the subdomain review are only for platforms of independent sites', () => {
+  test('class rules in the subdomain review are only for platforms of independent sites; never itch.io', () => {
     const classes = [...subs].filter((s) => s.startsWith('*.'))
     assert.deepEqual(classes.sort(), [
-      '*.b-cdn.net', '*.cdn.ampproject.org', '*.deviantart.com', '*.disqus.com', '*.free.fr', '*.itch.io', '*.livejournal.com',
-      '*.medium.com', '*.mybluehost.me', '*.squarespace.com', '*.tumblr.com', '*.weebly.com', '*.wix.com', '*.wordpress.com',
+      '*.b-cdn.net', '*.blig.ig.com.br', '*.blogs.sapo.pt', '*.canalblog.com', '*.cdn.ampproject.org', '*.deviantart.com', '*.disqus.com',
+      '*.free.fr', '*.hpg.ig.com.br', '*.livejournal.com', '*.medium.com', '*.mybluehost.me', '*.mystrikingly.com', '*.narod.ru',
+      '*.netfirms.com', '*.newgrounds.com', '*.ning.com', '*.over-blog.com', '*.paginas.sapo.pt', '*.rncdn7.com', '*.squarespace.com',
+      '*.tumblr.com', '*.weebly.com', '*.wix.com', '*.wordpress.com',
     ])
+    // itch.io pages are reviewed one by one; the rest wait in pending-review.
+    assert.ok(lines('data/pending-review.txt').includes('*.itch.io'))
+    assert.ok([...subs].some((s) => s.endsWith('.itch.io') && !s.startsWith('*.')))
+  })
+
+  test('the recovery, anti-porn and Islamic-named sites from the audit are allowlisted with everything under them', () => {
+    for (const h of [
+      'yourbrainonporn.com', 'realyourbrainonporn.com', 'pornaddictsanonymous.org', 'spaa-recovery.org', 'sca-recovery.org',
+      'istoppornography.org', 'stopsexaddiction.org', 'endpornaddiction.com', 'restoringsexualpurity.org', 'fortworthpornrecovery.com',
+      'biblicalpornrecovery.com', 'quitpornuse.com', 'sexaddictionhelp.com', 'pornaddictionawareness.org', 'sexualsobrietycoach.com',
+      'nycenterforsexaddictiontreatment.com', 'fourcirclesrecovery.com', 'ldshopeandrecovery.com', 'theexodusroads.com',
+      'feministantipornographymovement.org', 'nakedbiblepodcast.com', 'exodus-wallet.com', 'exodus.email', 'overthinkersguidetosex.substack.com',
+      'ahappymuslimah.tumblr.com', 'ace-muslim.tumblr.com', 'muslimstateof-mind.tumblr.com', 'quranbeginners.com', 'areejquran.com',
+      'rawdatelquran.com', 'qurank.net', 'profetadelislam.com', 'islamicquiz.xyz', 'islamic-wealth-management.net', 'islamicexpo-sa.com',
+      'libyanislamicgroup.org', 'musliminchina.com', 'muslimwakeup.com', 'ukrhalal.org', 'imamsadr.net', 'talksofdeen.com',
+      'asexualityandislam.com', 'islamisohbet.chat', 'islamsohbet.site', 'rakibislam.com', 'allahsoft.com',
+    ]) {
+      assert.ok(allow.has(`*.${h}`), h)
+    }
+    assert.match(read('data/allowlist.txt'), /\*\.allahsoft\.com +# Islamic-named, not verified adult; reviewed by hand before re-adding/)
+  })
+
+  test('the false positives found by the top-10,000 subdomain review are allowlisted', () => {
+    for (const h of ['beauty.about.com', 'blacklivesmatter.co.com', 'jokes.pp.ru', 'moviemeltdown.libsyn.com', 'emilymorse.libsyn.com', 'sexassault.meetup.com', 'blog-imgs-10.fc2.com']) {
+      assert.ok(allow.has(h), h)
+    }
+  })
+
+  test('single-source popular entries are allowlisted, not reviewed', () => {
+    for (const h of ['*.mjedge.net', '*.chapturist.com', '*.oolveris.com', '*.lolpol3.com', 'sac.en.alibaba.com', 'everycom.en.alibaba.com', 'bestcotec.en.alibaba.com', 'wiseu.en.alibaba.com', 'jnruning.en.alibaba.com']) {
+      assert.ok(allow.has(h), h)
+      assert.ok(!reviewed.has(h.replace(/^\*\./, '')) && !subs.has(h), h)
+    }
+  })
+
+  test('4chan\'s other domains are additions (founder decision)', () => {
+    const additions = new Set(lines('data/additions.txt'))
+    assert.ok(additions.has('4cdn.org') && additions.has('4channel.org'))
+    assert.ok(reviewed.has('4chan.org'))
+  })
+
+  test('the starter list keeps to dedicated adult sites: mixed platforms excluded, the big sites added', () => {
+    const exclude = new Set(lines('data/starter-exclude.txt'))
+    for (const h of ['dlsite.com', 'donmai.us', 'janitorai.com', 'polybuzz.ai', 'beeg.porn']) assert.ok(exclude.has(h), h)
+    const extra = new Set(lines('data/starter-extra.txt'))
+    for (const h of ['txxx.com', 'beeg.com', 'bongacams.com', 'livejasmin.com', 'cam4.com', 'hqporner.com']) assert.ok(extra.has(h), h)
+    // They stay in the full list.
+    for (const h of ['dlsite.com', 'donmai.us', 'janitorai.com', 'polybuzz.ai']) assert.ok(reviewed.has(h), h)
   })
 })

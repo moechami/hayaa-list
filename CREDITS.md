@@ -13,6 +13,11 @@ text without an "or later" grant, so the combined list cannot offer later
 versions. The code of this repository is separately licensed
 `GPL-3.0-or-later` (see README.md).
 
+**Modification notice** (GPL-3.0 section 5(a)): this list merges,
+normalises and filters the sources below (public suffixes, protected names,
+false keyword matches, the allowlist and the review gates are described in
+README.md); each release's date is its serial (`YYYYMMDDNN`).
+
 ## Sources included
 
 ### ShadowWhisperer BlockLists: Adult
@@ -143,7 +148,7 @@ list and are not published with it.
   Maciej Korczyński and Wouter Joosen, "Tranco: A Research-Oriented Top
   Sites Ranking Hardened Against Manipulation", NDSS 2019.
 - Use: the review gates (every top-10,000 site the list would block, and
-  every listed subdomain of a top-1,000 site, must be reviewed by hand) and
+  every listed subdomain of a top-10,000 site, must be reviewed by hand) and
   the choice of the starter list. The ranking is never redistributed: no
   ranks are stored in this repository or in a release.
 - TODO: Cloudflare Radar's data is CC BY-NC 4.0. The maintainer will create a
@@ -153,12 +158,18 @@ list and are not published with it.
 ## MIT licence notices
 
 The following notices apply to the entries that come from the MIT-licensed
-sources above. The licence text is the same for each:
+sources above. The Clefspeare13 list's own copyright line could not be read
+(its repository is unavailable), so its contributors are named generically.
+The Block List Project's repository licence is the Unlicense, but its file
+header says MIT; its line is included as a precaution. The licence text is
+the same for each:
 
 ```
 Copyright (c) 2016 Sinfonietta
 Copyright © 2026 Steven Black
+Copyright (c) Clefspeare13 pornhosts contributors
 Copyright (c) 2026 BigDargon
+Copyright (c) The Block List Project contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

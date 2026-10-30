@@ -6,11 +6,13 @@ A release has these files:
 |---|---|
 | `hayaa-list-<serial>.bin.gz` | The list, binary format v2, gzip-compressed |
 | `hayaa-list-<serial>.txt` | The same list as plain text, one entry per line |
-| `starter.bin` | The starter list (exactly 50 hosts), binary format v2, not compressed |
+| `starter.bin` | The starter list (exactly 50 hosts), binary format v2, not compressed, header serial 0 |
 | `manifest.json` | Describes the list file: serial, sizes, hashes, probes |
 | `manifest.json.sig` | Signature over `manifest.json` |
-| `build-info.json` | Per-source line, host and skipped-line counts, and the entries held back for review; read by the next build, never by the app |
+| `build-info.json` | Per-source line, host and skipped-line counts, the recent host counts, and the entries held back for review; read by the next build, never by the app |
+| `build-info.json.sig` | Signature over `build-info.json` |
 | `sources.lock.json` | The exact inputs the release was built from |
+| `sources.lock.json.sig` | Signature over `sources.lock.json` |
 | `LICENSE`, `CREDITS.md` | The licence of the list data (GPL-3.0-only) and its sources and attributions |
 
 The serial is `YYYYMMDDNN`: the UTC build date and a run number for that day
@@ -32,6 +34,15 @@ the one it has.
 
 Entries are kept at the granularity the sources list them. A host already
 covered by a listed parent is dropped as redundant.
+
+A host is any name that passes the structural check above: labels of 1 to
+63 letters, digits or hyphens, not starting or ending with a hyphen. Some
+listed hosts have hyphens in the third and fourth positions of a label
+without being punycode (`69--gifs.tumblr.com`; 31 in the release of
+2026-10-30). They are valid DNS names and stay in the list. IDNA's
+"CheckHyphens" rule (ICU's HYPHEN_3_4 error) rejects them, so a reader or
+normaliser must not apply that rule to list entries or to the hosts it looks
+up, or those sites would never match.
 
 ## Matching rule
 
@@ -125,12 +136,12 @@ newline:
   "keyId": "k1",
   "file": {
     "name": "hayaa-list-2026110101.bin.gz",
-    "size": 4836631,
+    "size": 8892897,
     "sha256": "<64 lowercase hex>",
-    "gzSize": 2686335,
+    "gzSize": 4948017,
     "gzSha256": "<64 lowercase hex>"
   },
-  "hostCount": 614939,
+  "hostCount": 1104537,
   "canaries": [{ "host": "pornhub.com" }, { "host": "pornhub.com", "path": "/view_video.php" }],
   "negatives": [{ "host": "wikipedia.org" }]
 }
@@ -142,7 +153,7 @@ newline:
 | `serial` | 1 to 4294967295; equal to the list header's serial |
 | `keyId` | 1 to 32 of `A-Z a-z 0-9 _ -`; names the key in `keys/` that signed it |
 | `file.name` | exactly `hayaa-list-<serial>.bin.gz` |
-| `file.size` | uncompressed bytes, 32 to 96 MiB |
+| `file.size` | uncompressed bytes, 32 bytes to 96 MiB |
 | `file.sha256` | SHA-256 of the uncompressed bytes |
 | `file.gzSize` | compressed bytes, 1 to 40 MiB |
 | `file.gzSha256` | SHA-256 of the compressed bytes |
@@ -172,6 +183,10 @@ openssl dgst -sha256 -sign key.pem -out manifest.json.sig manifest.json
 
 produces. The public keys are in `keys/` as PEM SubjectPublicKeyInfo.
 
+`build-info.json.sig` and `sources.lock.json.sig` are made the same way over
+those files. The app does not read them; the next monthly build does, and
+refuses a previous release whose signatures do not verify.
+
 ## Compression
 
 `hayaa-list-<serial>.bin.gz` is a single gzip member written by pako at
@@ -180,12 +195,15 @@ list always compresses to the same bytes on any machine.
 
 ## starter.bin
 
-The starter list uses the same v2 format and the same serial as the full
-list. It holds exactly 50 host entries (no page entries), every one also an
-entry of the full list: the most visited sites of the full list by the
-Tranco ranking at build time (registrable domains only), at most two per
-brand, skipping the delivery and advertising domains in
-`data/starter-exclude.txt`, plus `data/starter-extra.txt`. A brand is the
+The starter list uses the same v2 format as the full list, with header
+serial **0**: it is never a release, so an app can never mistake it for a
+monthly list (a real serial is always `YYYYMMDDNN`, far above 0). It holds
+exactly 50 host entries (no page entries), every one also an entry of the
+full list: the most visited sites of the full list by the Tranco ranking at
+build time (registrable domains only), at most two per brand, skipping the
+delivery and advertising domains and the general or mixed platforms in
+`data/starter-exclude.txt` (they stay in the full list), plus the large
+dedicated adult sites named in `data/starter-extra.txt`. A brand is the
 name of the registrable domain without trailing digits or a hyphenated tail
 (`xhamster2.com` and `xhamster.desi` are both `xhamster`), or the brand
 `data/starter-brands.txt` gives a mirror whose name does not show it.
@@ -195,16 +213,20 @@ with an app update.
 
 ## build-info.json
 
-UTF-8 JSON, two-space indentation and a final newline. The next monthly
-build reads it from the latest release to run its shrink gates and to tell
-new held-back entries from ones already waiting for review.
+UTF-8 JSON, two-space indentation and a final newline, signed like the
+manifest. The next monthly build reads it from the latest release, after
+checking its signature, to run its shrink and growth gates and to tell new
+held-back entries from ones already waiting for review. `hostCountHistory`
+holds the host counts of up to the last six releases, oldest first, this
+one last; the slow-shrink gate compares with its largest value.
 
 ```json
 {
-  "buildInfoVersion": 1,
+  "buildInfoVersion": 2,
   "serial": 2026110101,
-  "hostCount": 1110536,
+  "hostCount": 1104537,
   "pathCount": 0,
+  "hostCountHistory": [1104537],
   "sources": [
     { "id": "hagezi-nsfw", "commit": "<40 hex>", "sha256": "<64 hex>", "lines": 92336, "hosts": 92336, "skippedLines": 0 }
   ],

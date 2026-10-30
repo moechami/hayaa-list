@@ -1,13 +1,14 @@
 name: Release staleness check
 
 # Weekly: opens an issue when the latest release is more than 35 days old
-# (the monthly job failed, waited unapproved, or stopped running), and asks
-# GitHub to keep both scheduled workflows enabled.
+# (the monthly job failed, waited unapproved, or stopped running), and keeps
+# both scheduled workflows enabled.
 #
 # GitHub disables scheduled workflows in a public repository after 60 days
-# without repository activity. The main keep-alive is the commit the release
-# job makes to main every month; re-enabling the workflows here through the
-# API is a second line of defence for months when no release is made.
+# without repository activity. Nothing is committed to the repository by the
+# release job, so this job is the keep-alive: every week it enables both
+# workflows through the API, which keeps them from being disabled. If it was
+# disabled itself, enable it by hand (Actions tab, Release staleness check).
 
 on:
   schedule:
