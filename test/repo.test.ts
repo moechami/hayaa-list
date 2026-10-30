@@ -317,6 +317,32 @@ describe('reviewed decisions in data/', () => {
     assert.match(read('data/allowlist.txt'), /\*\.allahsoft\.com +# Islamic-named, not verified adult; reviewed by hand before re-adding/)
   })
 
+  test('the second audit\'s recovery, religious, health, medical, legal and random-sample false positives are allowlisted with everything under them', () => {
+    const covered = (h: string): boolean => [...allow].some((a) => a.startsWith('*.') && (h === a.slice(2) || h.endsWith(a.slice(1))))
+    for (const h of [
+      'overcomeporn.co', 'overcomepornography.com', 'overcomingpornography.net', 'conqueringpornography.net', 'catholicmenconquerporn.com',
+      'recoverfromporn.com', 'recoverfromporn.org', 'recoveringpornjunkie.tumblr.com', 'pornkills.org', 'seekingintegrity.com',
+      'menssexualintegritycoaching.com', 'pornrehab.com', 'thepornrehab.com', 'porn-freedom13.tumblr.com', 'pornfreedom2.blogspot.com',
+      'men-stopping-rape.org', 'stopitnow.nl', 'drugrehabcarsoncity.com', 'drugrehabforteensgeorgia-mj1.blogspot.com', 'drugrehabfortmorgan.com',
+      'drugrehabgreenvalley.com', 'drugrehablosgatos.com', 'drugrehabrodeo.com', 'drugrehabsteamboatsprings.com', 'cokerehab.org',
+      'tauhidweb.com', 'alfakirtauhid.blogspot.com', 'asunna.com', 'madrassa-elabqari.net', 'musulmanesonline.com', 'hanaumroh.com',
+      'sagarhajj.com', 'hijrahsukses.com', 'moodlemajlis.com', 'jesus-is-lord.com', 'infantjesushighschool.com', 'prayerchaininternational.org',
+      'allsaintsparish.org', 'virginiadiocese.org', 'diocesestp.com', 'adult-faith-formation.online', 'ezsermons.com', 'evangelio.com',
+      'evangelicaloutreach.org', 'somosiglesia.net', 'chiesaromana.info', 'catholicnewsworld.com', 'jcsjacksonareacatholicschools.org',
+      'firstbaptist.life', 'hartfordmethodist.org', 'jewishbookfestival.ca', 'izmirjewishheritage.com', 'hindufm.com', 'namo-buddha.org',
+      'scarleteen.com', 'roo.plannedparenthood.org', 'healingsexualabuse.com', 'sexualabusehotline.com', 'sexualassaultevidencealliance.ca',
+      'leedssexualhealth.com', 'hnesexualhealth.org.au', 'gpib.church', 'americanobgyn.com', 'lakelandobgyn.com', 'cosmeticgynecologydallas.com',
+      'middlesexurology.com', 'urolognet.com', 'minnesotasexualharassmentattorney.com', 'sexualharassmentclaims.com',
+      'batestickets.com', 'executivechoicesc.com', 'mywayresidenciaparaadultos.com.ar', 'oneprettything.com', 'olivatextil.ru', 'allslots.com',
+      'gumusbakircilik.com', 'beautybyreeree.com', 'netbookbattery.ru', 'sd-cctv.com', 'hairmagicianunisexsalon.com', 'maryelschool.org', 'endepot.com',
+    ]) {
+      assert.ok(covered(h), h)
+    }
+    // Every host with "lutheran" in its name that any source lists.
+    const lutheran = [...allow].filter((a) => a.includes('lutheran') && a.startsWith('*.'))
+    assert.ok(lutheran.length >= 24, String(lutheran.length))
+  })
+
   test('the false positives found by the top-10,000 subdomain review are allowlisted', () => {
     for (const h of ['beauty.about.com', 'blacklivesmatter.co.com', 'jokes.pp.ru', 'moviemeltdown.libsyn.com', 'emilymorse.libsyn.com', 'sexassault.meetup.com', 'blog-imgs-10.fc2.com']) {
       assert.ok(allow.has(h), h)

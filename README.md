@@ -74,17 +74,27 @@ apart from reviewed mistakes.
 
 The app's users cannot override the Blocker, and the app exists for
 recovery from pornography in an Islamic setting, so blocking a recovery,
-Christian or Islamic site is worse than missing an adult one. Any listed
-host whose name (every label except the public suffix, hyphens ignored)
-contains a protected term is **removed**, unless a person reviewed it as
-genuinely adult and named it, with the reason, in
+religious, health or abuse-support site is worse than missing an adult
+one. Any listed host whose name (every label except the public suffix,
+hyphens ignored) contains a protected term is **removed**, unless a person
+reviewed it as genuinely adult and named it, with the reason, in
 `data/reviewed-protected.txt`. The terms are data, in
-`data/protected-terms.txt`: words of recovery (recovery, addict, sober,
-nofap, therapy, counsel, "anonymous" together with porn, sex or addict, and
-the names of known recovery projects), of Christianity (church, bible,
-christ, gospel, ministry) and of Islam (muslim, islam, quran, halal, masjid,
-deen, imam, allah, sunnah, hadith, hijab, salah, the label "dua", and more).
-Known recovery and Islamic-named sites are also allowlisted by name.
+`data/protected-terms.txt`: words of recovery (recover, rehab, addict,
+sober, nofap, therapy, counsel, integrity, "overcome" or "conquer" together
+with porn, "anonymous" together with porn, sex or addict, and the names of
+known recovery projects), of sexual health and abuse support (sexual
+health, sexual abuse, sexual assault, sexual harassment, helplines,
+gynecology, urology), of Christianity (church, bible, christ, gospel,
+ministry, jesus, prayer, sermon, faith, parish, diocese, catholic,
+lutheran, baptist, methodist, evangelical), of Judaism (jewish) and of
+Islam (muslim, islam, quran, halal, masjid, deen, imam, allah, sunna,
+hadith, hijab, salah, tauhid, madrasa, umrah, hajj, hijrah, majlis, the
+label "dua", and more). A term can name the ordinary words it must not be
+read inside ("prayer" is not read inside "sprayer", "parish" not inside
+"Paris Hilton"). Every host under a religious top-level domain (`.church`,
+`.christmas`, `.catholic`, `.bible`, `.mormon`) is protected the same
+way. Known recovery, religious, health and support sites are also
+allowlisted by name.
 
 ### False keyword matches
 

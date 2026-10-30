@@ -437,3 +437,188 @@ blog5.fc2.com                            # FC2 blog server, shared by many blogs
 blog91.fc2.com                           # FC2 blog server, shared by many blogs
 blacklivesmatter.co.com                  # campaign site, not adult (its parent co.com is a public suffix, so the subdomain gate does not see it)
 jokes.pp.ru                              # jokes site, not adult (its parent pp.ru is a public suffix, so the subdomain gate does not see it)
+
+# --- Recovery, abuse-prevention and rehabilitation sites (with everything under them, 2026-10-30, second review) ---
+# Also removed by the protected-name gate where a term matches; listed here so no
+# later change to the terms can ever block them.
+*.overcomeporn.co                       # pornography recovery
+*.overcomepornography.com               # pornography recovery
+*.overcomingpornography.net             # pornography recovery
+*.conqueringpornography.net             # pornography recovery
+*.catholicmenconquerporn.com            # pornography recovery, Catholic
+*.recoverfromporn.com                   # pornography recovery
+*.recoverfromporn.org                   # pornography recovery
+*.recoveringpornjunkie.tumblr.com       # recovery blog
+*.pornkills.org                         # anti-pornography campaign
+*.seekingintegrity.com                  # sex and porn addiction treatment
+*.menssexualintegritycoaching.com       # sexual integrity coaching (recovery)
+*.pornrehab.com                         # pornography recovery
+*.thepornrehab.com                      # pornography recovery
+*.porn-freedom13.tumblr.com             # recovery blog
+*.pornfreedom2.blogspot.com             # recovery blog
+*.becomingpornfree.com                  # pornography recovery
+*.pornfreeliving.com                    # pornography recovery
+*.pornfreemarriage.com                  # pornography recovery
+*.pornfreemasculinity.com               # pornography recovery
+*.pornfreeshamefree.com                 # pornography recovery
+*.men-stopping-rape.org                 # anti-rape campaign
+*.stopitnow.nl                          # child sexual abuse prevention helpline
+*.drugrehabcarsoncity.com               # drug rehabilitation
+*.drugrehabforteensgeorgia-mj1.blogspot.com # drug rehabilitation
+*.drugrehabfortmorgan.com               # drug rehabilitation
+*.drugrehabgreenvalley.com              # drug rehabilitation
+*.drugrehablosgatos.com                 # drug rehabilitation
+*.drugrehabrodeo.com                    # drug rehabilitation
+*.drugrehabsteamboatsprings.com         # drug rehabilitation
+*.cokerehab.org                         # drug rehabilitation
+
+# --- Islamic sites (with everything under them, 2026-10-30, second review) ---
+*.tauhidweb.com                         # Islamic site
+*.alfakirtauhid.blogspot.com            # Islamic blog
+*.asunna.com                            # Islamic site
+*.madrassa-elabqari.net                 # Islamic school
+*.musulmanesonline.com                  # Muslim community site
+*.hanaumroh.com                         # umrah travel agency
+*.sagarhajj.com                         # hajj travel agency
+*.hijrahsukses.com                      # Islamic site
+*.moodlemajlis.com                      # learning platform (majlis)
+
+# --- Lutheran churches: every listed host with "lutheran" in its name (2026-10-30) ---
+*.fonteslutheran.com                    # Lutheran sources and texts
+*.fonteslutheran.org                    # Lutheran sources and texts
+*.fonteslutherani.com                   # Lutheran sources and texts
+*.fonteslutherani.org                   # Lutheran sources and texts
+*.gslutheran.com                        # Lutheran church
+*.holycrosslutheran.org                 # Lutheran church
+*.holycrosslutheranspokane.com          # Lutheran church
+*.immanuelstegerstpaulslutheranchicagoheightsil.org # Lutheran church
+*.jacobslutheranchurch.com              # Lutheran church
+*.kairoslutheran.com                    # Lutheran church
+*.kairoslutheran.live                   # Lutheran church
+*.mbeziluislutheran.or.tz               # Lutheran church
+*.oursaviourslutheranchurch.com         # Lutheran church
+*.shepherdofthepineslutheran.com        # Lutheran church
+*.standrewslutheran.ca                  # Lutheran church
+*.stanneslutheranchurch.org             # Lutheran church
+*.stjohnslutheranchurchkimball.org      # Lutheran church
+*.stjohnslutheranschuyler.org           # Lutheran church
+*.stlukeslutheranallentown.com          # Lutheran church
+*.stmarkslutheran-roanoke.org           # Lutheran church
+*.stmatthewslutheran.org                # Lutheran church
+*.stpaulslutheranatwurtemburg.com       # Lutheran church
+*.stpeterslutheranchurchluckwi.com      # Lutheran church
+*.trinitylutherannewmilford.org         # Lutheran church
+
+# --- Christian, Jewish, Hindu and Buddhist sites (2026-10-30, second review) ---
+*.gpib.church                           # Protestant church in Indonesia (GPIB)
+*.jesus-is-lord.com                     # Christian site
+*.infantjesushighschool.com             # school
+*.prayerchaininternational.org          # Christian prayer ministry
+*.allsaintsparish.org                   # Catholic parish
+*.holyredeemerparishpgh.com             # Catholic parish
+*.olphparish.net                        # Catholic parish
+*.virginiadiocese.org                   # Episcopal diocese
+*.diocesestp.com                        # Catholic diocese
+*.adult-faith-formation.online          # Christian adult education
+*.ezsermons.com                         # sermon resources
+*.evangelio.com                         # Christian site (Spanish "gospel")
+*.evangelicaloutreach.org               # Christian ministry
+*.evangelicaloutpost.com                # Christian blog
+*.somosiglesia.net                      # Catholic site (Spanish "we are church")
+*.chiesaromana.info                     # Catholic site (Italian)
+*.catholicnewsworld.com                 # Catholic news
+*.jcsjacksonareacatholicschools.org     # Catholic schools
+*.vietcatholicindy.org                  # Vietnamese Catholic community
+*.firstbaptist.life                     # Baptist church
+*.gilfieldbaptist.com                   # Baptist church
+*.thebaptisttemple.org                  # Baptist church
+*.truthbaptist.org.hk                   # Baptist church
+*.hartfordmethodist.org                 # Methodist church
+*.apmethodist.org                       # Methodist church
+*.countrysidemethodist.com              # Methodist church
+*.misionerosdejesusdenazaret.org        # Catholic missionary order
+*.jewishbookfestival.ca                 # Jewish book festival
+*.izmirjewishheritage.com               # Jewish heritage project
+*.createajewishlegacymiddlesex.org      # Jewish community foundation
+*.hindufm.com                           # Hindu radio
+*.namo-buddha.org                       # Buddhist monastery
+
+# --- Sexual health, abuse and assault support (2026-10-30) ---
+*.scarleteen.com                        # sex education for young people
+*.plannedparenthood.org                 # reproductive health care
+*.healingsexualabuse.com                # abuse survivors support
+*.healing-childhood-sexual-abuse.com    # abuse survivors support
+*.sexualabusehotline.com                # abuse hotline
+*.sexualabusesurvivorwarrior.org        # abuse survivors support
+*.sexualassaultevidencealliance.ca      # sexual assault evidence advocacy
+*.sexual-assault.ca                     # sexual assault support
+*.sexualassault.co.uk                   # sexual assault support
+*.revengepornhelpline.org.uk            # abuse helpline (image-based abuse)
+*.leedssexualhealth.com                 # NHS sexual health service
+*.hnesexualhealth.org.au                # public sexual health service
+*.sexualhealthcornwall.co.uk            # NHS sexual health service
+*.walsallsexualhealth.co.uk             # NHS sexual health service
+*.wossexualhealthmcn.org.uk             # NHS sexual health network
+*.sexualhealthnetwork.org.uk            # sexual health network
+*.grampiansexualhealthservices.com      # sexual health service
+*.nationalcoalitionforsexualhealth.org  # public health coalition
+*.coalitionagainstdomesticviolence.org  # domestic violence charity
+
+# --- Medical practices (2026-10-30) ---
+*.americanobgyn.com                     # OB-GYN practice
+*.gatewayobgyn.com                      # OB-GYN practice
+*.lakelandobgyn.com                     # OB-GYN practice
+*.metrojxnobgyn.com                     # OB-GYN practice
+*.ob-gyn-melrosepark.com                # OB-GYN practice
+*.cosmeticgynecologydallas.com          # gynecology practice
+*.cosmeticlasergynecology.com           # gynecology practice
+*.docgyneco.unblog.fr                   # gynecology blog
+*.dr-legentil-sexologue-gyneco.fr       # sexologist and gynecologist
+*.gynecomastiatreatment.org             # medical treatment information
+*.piedmonturologypc.com                 # urology practice
+*.uvapediatricurology.com               # pediatric urology (university hospital)
+*.middlesexurology.com                  # urology practice
+*.urolognet.com                         # urology information
+*.deweturology.com                      # urology practice
+*.gzneurology.com                       # neurology practice
+
+# --- Sexual harassment, assault and abuse law firms and litigation (2026-10-30) ---
+*.minnesotasexualharassmentattorney.com # sexual harassment law firm
+*.minnesotasexualharassmentlawyer.com   # sexual harassment law firm
+*.mnsexualharassmentlawyers.com         # sexual harassment law firm
+*.sanantoniosexualharassmentattorney.com # sexual harassment law firm
+*.sanantoniosexualharassmentattorney.online # sexual harassment law firm
+*.sexualharassmentattorneyhouston.com   # sexual harassment law firm
+*.sexualharassmentattorneyhouston.online # sexual harassment law firm
+*.sexualharassmentattorneysorangecounty.com # sexual harassment law firm
+*.sexualharassmentattorneytexas.com     # sexual harassment law firm
+*.sexualharassmentattorneytexas.online  # sexual harassment law firm
+*.sexualharassmentclaims.com            # sexual harassment law firm
+*.sexualharassmentlawyer.fun            # sexual harassment law firm
+*.sexualharassmentlawyer.help           # sexual harassment law firm
+*.sexualharassmentlawyerminnesota.com   # sexual harassment law firm
+*.sexualassaultattorneysindex.com       # sexual assault law firms
+*.cruiseshipsexualassaultlawyer.com     # sexual assault law firm
+*.dublinprisonsexualassaultlawyers.com  # sexual assault law firm
+*.lyftsexualassaultmdl.com              # sexual assault litigation
+*.sexualassaultrideshare.com            # sexual assault litigation
+*.sexualabuselawsuit.com                # sexual abuse litigation
+*.sexualabuseclaimsblog.com             # sexual abuse litigation
+*.womensprisonsexualabuseattorney.com   # sexual abuse law firm
+*.baptistsexabuseclaims.org             # sexual abuse litigation
+
+# --- Ordinary sites from a random sample of the final list (2026-10-30) ---
+# Read by name: none is adult. Most were listed only by The Block List Project.
+*.batestickets.com                      # ticket seller
+*.executivechoicesc.com                 # business site
+*.mywayresidenciaparaadultos.com.ar     # residence for older adults
+*.oneprettything.com                    # craft and fashion blog
+*.olivatextil.ru                        # textile company
+*.allslots.com                          # casino games site, not adult
+*.gumusbakircilik.com                   # copperware shop
+*.beautybyreeree.com                    # beauty salon
+*.netbookbattery.ru                     # battery shop
+*.sd-cctv.com                           # security cameras
+*.hairmagicianunisexsalon.com           # hair salon
+*.maryelschool.org                      # school
+*.endepot.com                           # shop

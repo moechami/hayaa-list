@@ -13,6 +13,15 @@
 //      contains <term>                 any label contains it (hyphens ignored)
 //      label <term>                    a whole label equals it
 //      contains <term> with <a> <b>    the name contains the term and also a or b
+//      contains <term> not <x> <y>     as "contains", but an occurrence of the
+//                                      term inside x or y does not count
+//                                      ("prayer" not "sprayer"); "with" and
+//                                      "not" can be combined, "with" first
+//      tld <label>                     the host's top-level domain is the label
+//                                      (".church", ".christmas"): a religious
+//                                      top-level domain protects every name
+//                                      under it, which the name rule (public
+//                                      suffix never counted) would miss
 //
 // 2. False keyword matches. Some sources (config.ts KEYWORD_MATCHED_SOURCES)
 //    were built partly by matching words such as "sex" inside names, which
@@ -28,8 +37,9 @@ import { registrableDomain, type PublicSuffixList } from './psl'
 const TERM = /^[a-z0-9]+$/
 
 export type ProtectedRule =
-  | { kind: 'contains'; term: string; with: string[] }
+  | { kind: 'contains'; term: string; with: string[]; not: string[] }
   | { kind: 'label'; term: string }
+  | { kind: 'tld'; term: string }
 
 /** data/protected-terms.txt → rules. Throws on a malformed line. */
 export const parseProtectedTerms = (text: string): ProtectedRule[] => {
@@ -37,13 +47,26 @@ export const parseProtectedTerms = (text: string): ProtectedRule[] => {
   for (const line of readDataLines(text)) {
     const words = line.split(/\s+/)
     const [kind, term] = words
-    const bad = (): Error => new Error(`protected-terms: "${line}" is not "contains <term>", "label <term>" or "contains <term> with <term>..."`)
+    const bad = (): Error =>
+      new Error(`protected-terms: "${line}" is not "contains <term> [with <term>...] [not <word>...]", "label <term>" or "tld <label>"`)
     if (term === undefined || !TERM.test(term)) throw bad()
-    if (kind === 'label' && words.length === 2) out.push({ kind: 'label', term })
-    else if (kind === 'contains' && words.length === 2) out.push({ kind: 'contains', term, with: [] })
-    else if (kind === 'contains' && words[2] === 'with' && words.length > 3 && words.slice(3).every((w) => TERM.test(w))) {
-      out.push({ kind: 'contains', term, with: words.slice(3) })
-    } else throw bad()
+    if ((kind === 'label' || kind === 'tld') && words.length === 2) {
+      out.push({ kind, term })
+      continue
+    }
+    if (kind !== 'contains') throw bad()
+    // contains <term> [with <a> <b>...] [not <x> <y>...]
+    const rest = words.slice(2)
+    const notAt = rest.indexOf('not')
+    const withPart = notAt < 0 ? rest : rest.slice(0, notAt)
+    const notPart = notAt < 0 ? [] : rest.slice(notAt + 1)
+    if (withPart.length > 0 && (withPart[0] !== 'with' || withPart.length < 2)) throw bad()
+    const withWords = withPart.slice(1)
+    if (notAt >= 0 && notPart.length === 0) throw bad()
+    if (![...withWords, ...notPart].every((w) => TERM.test(w) && w !== 'with' && w !== 'not')) throw bad()
+    // An exception must contain the term, or it could never hide an occurrence of it.
+    if (notPart.some((x) => !x.includes(term))) throw bad()
+    out.push({ kind: 'contains', term, with: withWords, not: notPart })
   }
   if (out.length === 0) throw new Error('protected-terms: no terms')
   return out
@@ -58,16 +81,32 @@ export const nameLabels = (psl: PublicSuffixList, host: string): string[] => {
   return labels.slice(0, labels.length - suffixLabels)
 }
 
+/** True when `label` contains `term` at a position not inside one of the `not` words. */
+const containsOutside = (label: string, term: string, not: readonly string[]): boolean => {
+  for (let i = label.indexOf(term); i >= 0; i = label.indexOf(term, i + 1)) {
+    const hidden = not.some((x) => {
+      // x covers [i, i + term.length) when it starts at some s with i + term.length - x.length <= s <= i.
+      const s = label.indexOf(x, Math.max(0, i + term.length - x.length))
+      return s >= 0 && s <= i
+    })
+    if (!hidden) return true
+  }
+  return false
+}
+
 /** The protected terms `host` matches (empty when none). */
 export const protectedTermsOf = (psl: PublicSuffixList, rules: readonly ProtectedRule[], host: string): string[] => {
   const labels = nameLabels(psl, host)
   const flat = labels.map((l) => l.replace(/-/g, ''))
   const name = flat.join('.')
+  const tld = host.slice(host.lastIndexOf('.') + 1)
   const hits: string[] = []
   for (const r of rules) {
     if (r.kind === 'label') {
       if (labels.includes(r.term) || flat.includes(r.term)) hits.push(r.term)
-    } else if (flat.some((l) => l.includes(r.term)) && (r.with.length === 0 || r.with.some((w) => name.includes(w)))) {
+    } else if (r.kind === 'tld') {
+      if (tld === r.term) hits.push(`.${r.term}`)
+    } else if (flat.some((l) => containsOutside(l, r.term, r.not)) && (r.with.length === 0 || r.with.some((w) => name.includes(w)))) {
       hits.push(r.with.length ? `${r.term}+${r.with.join('|')}` : r.term)
     }
   }

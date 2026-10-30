@@ -1,4 +1,4 @@
-# Protected terms: words of recovery, faith and Islam.
+# Protected terms: words of recovery, abuse support, sexual health, faith and Islam.
 #
 # A listed host whose name contains one of these is REMOVED from the list,
 # unless data/reviewed-protected.txt names it with a reason: a person looked
@@ -12,13 +12,24 @@
 #   contains <term>                  some label contains the term
 #   label <term>                     some label is exactly the term
 #   contains <term> with <a> <b>...  the name contains the term AND one of the others
+#   contains <term> not <x> <y>...   as "contains", but an occurrence of the term
+#                                    inside x or y does not count ("prayer" is
+#                                    not counted inside "sprayer"); each x must
+#                                    contain the term; "with" comes first
+#   tld <label>                      the top-level domain is the label: every
+#                                    name under a religious top-level domain
 #
 # Lowercase letters and digits only. A longer word that contains a term is
 # covered by it ("addict" covers "addiction", "counsel" covers "counseling"
 # and "counsellor", "muslim" covers "muslimah", "islam" covers "islamic").
+# Terms are word stems chosen so that they do not occur inside common
+# unrelated words; where one does, a "not" names that word. A plainly
+# pornographic name that a term catches is listed, with its reason, in
+# data/reviewed-protected.txt.
 
 # --- Recovery ---
-contains recovery
+contains recover        # recovery, recovering, recoverfromporn
+contains rehab
 contains addict
 contains sobriety
 contains sober
@@ -34,6 +45,27 @@ contains exodus
 contains therapy
 contains therapist
 contains counsel
+contains overcom with porn        # overcome porn, overcoming pornography
+contains conquer with porn        # conquering pornography
+contains pornfreedom
+contains pornfree with becoming living marriage masculinity shame journey recover christian warrior coach
+contains integrity      # sexual integrity, seeking integrity
+contains stopitnow
+contains pornkills
+
+# --- Sexual health, abuse and assault support ---
+contains sexualhealth   # also "sexual-health" (hyphens are ignored)
+contains sexualabuse
+contains sexualassault
+contains sexualharassment
+contains scarleteen
+contains plannedparenthood
+contains hotline with abuse assault rape violence crisis suicide survivor
+contains helpline
+contains gynec          # gynecology, gynecologist
+contains gynaec
+contains obgyn
+contains urolog
 
 # --- Christianity ---
 contains church
@@ -43,6 +75,24 @@ contains christ
 contains gospel
 contains ministry
 contains ministries
+contains lutheran
+contains baptist
+contains methodist
+contains evangelic      # evangelical, evangelica, evangelico
+contains evangelio not evangelion  # Spanish "gospel"; not the anime Evangelion
+contains evangelho      # Portuguese "gospel"
+contains catholic
+contains iglesia        # Spanish "church"
+contains chiesa         # Italian "church"
+contains parish not parishilton parishillton parisheel parishollywood  # not "Paris Hilton", "Paris heels", "Paris Hollywood"
+contains diocese
+contains jesus
+contains prayer not sprayer
+contains sermon
+contains faith not unfaithful tylerfaith  # infidelity, and the performer name Tyler Faith
+
+# --- Judaism ---
+contains jewish
 
 # --- Islam ---
 contains muslim
@@ -61,4 +111,24 @@ contains ummah
 contains ramadan
 contains hijab
 contains salah
+contains tauhid
+contains tawhid
+contains sunna          # also covers sunnah
+contains musulman       # French and Spanish "Muslim"
+contains madrasa
+contains madrassa
+contains umrah
+contains umroh
+contains hajj
+contains hijrah
+contains majlis
 label dua
+
+# --- Religious top-level domains ---
+# The name rule never reads the public suffix, so "x.church" would pass
+# unseen. Every host under these is protected unless reviewed as adult.
+tld church
+tld christmas
+tld catholic
+tld bible
+tld mormon
