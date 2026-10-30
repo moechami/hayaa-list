@@ -6,9 +6,11 @@
 // that drops one of them fails here before it reaches a release.
 
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { delimiter, join } from 'node:path'
 import { describe, test } from 'node:test'
 import { readDataLines } from '../src/parse'
 
@@ -60,11 +62,46 @@ describe('monthly release workflow', () => {
   test('the publish job, without the key, checks the serial and verifies every signature twice before publishing', () => {
     assert.match(publish, /needs: \[build, sign\]/)
     assert.match(publish, /test "\$\(node -p "require\('\.\/release\/manifest\.json'\)\.serial"\)" = "\$SERIAL"/)
-    assert.match(publish, /npm run check-serial -- --repo "\$GITHUB_REPOSITORY" --serial "\$SERIAL"/)
+    assert.match(publish, /gh api --paginate "repos\/\$GITHUB_REPOSITORY\/releases\?per_page=100" --jq '\.\[\]\.tag_name'/)
     assert.match(publish, /for f in manifest\.json build-info\.json sources\.lock\.json; do\n\s+openssl dgst -sha256 -verify "keys\/\$key_id\.pub\.pem" -signature "release\/\$f\.sig" "release\/\$f"/)
     assert.match(publish, /npm run verify -- --dir release --release/)
     const at = (s: string): number => publish.indexOf(s)
     assert.ok(at('= "$SERIAL"') < at('-verify "keys') && at('-verify "keys') < at('npm run verify') && at('npm run verify') < at('gh release create'))
+  })
+
+  test('the publish job runs no npm, npx, tsx or node code in a step that holds its contents: write token', () => {
+    assert.match(publish, /\n {4}permissions:\n {6}contents: write\n/)
+    assert.doesNotMatch(publish, /npm run check-serial/)
+    const steps = publish.split(/\n {6}- /).slice(1)
+    const withToken = steps.filter((s) => /github\.token|GITHUB_TOKEN|GH_TOKEN/.test(s))
+    assert.equal(withToken.length, 2) // the serial re-check and the release itself
+    for (const s of withToken) assert.doesNotMatch(s, /\bnpm\b|\bnpx\b|\btsx\b|\bnode\b/, s.split('\n', 1)[0])
+    // The job-level env carries no token either.
+    assert.doesNotMatch(publish.slice(0, publish.indexOf('steps:')), /token|TOKEN/)
+  })
+
+  test('the publish job\'s serial re-check (bash, gh and jq) passes a newer serial and refuses an older one or an API error', () => {
+    const step = publish.split(/\n {6}- /).find((s) => s.includes('gh api --paginate'))!
+    const script = step.slice(step.indexOf('run: |') + 'run: |'.length).split('\n').map((l) => l.replace(/^ {10}/, '')).join('\n')
+    const dir = mkdtempSync(join(tmpdir(), 'hayaa-list-serial-'))
+    try {
+      // A fake gh: prints the tags in $FAKE_TAGS, or fails when $FAKE_FAIL is set.
+      writeFileSync(join(dir, 'gh'), '#!/bin/bash\nif [ -n "$FAKE_FAIL" ]; then echo "HTTP 500" >&2; exit 1; fi\nprintf "%s" "$FAKE_TAGS"\n', { mode: 0o755 })
+      const run = (serial: string, tags: string, fail = false): number | null =>
+        spawnSync('bash', ['-c', script], {
+          env: { ...process.env, PATH: `${dir}${delimiter}${process.env.PATH ?? ''}`, SERIAL: serial, FAKE_TAGS: tags, FAKE_FAIL: fail ? '1' : '', GITHUB_REPOSITORY: 'o/r' },
+          encoding: 'utf8',
+        }).status
+      assert.equal(run('2026110101', ''), 0) // no release yet
+      assert.equal(run('2026120101', 'v2026110101\nv2026100101\nnotes\n'), 0)
+      assert.equal(run('2026110101', 'v2026110101\n'), 1) // not newer
+      assert.equal(run('2026110101', 'v2026090101\nv2026120101\n'), 1) // every tag counts, not the first
+      assert.equal(run('2026110101', '', true), 1) // an API error never passes
+      assert.equal(run('202611010', ''), 1)
+      assert.equal(run('9999999999', ''), 1)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 
   test('nothing is committed to main: no checkout history, no push, no recorded lock', () => {
@@ -99,10 +136,17 @@ describe('monthly release workflow', () => {
     assert.match(build, /HAYAA_LIST_ALLOW_SHRINK: \$\{\{ inputs\.allow_shrink && '1' \|\| '0' \}\}/)
     assert.match(build, /HAYAA_LIST_ALLOW_GROWTH: \$\{\{ inputs\.allow_growth && '1' \|\| '0' \}\}/)
     assert.match(publish, /Gate overrides used for this release: allow_shrink \$ALLOW_SHRINK, allow_growth \$ALLOW_GROWTH/)
+    // The notes read them from the signed build-info.json, which must agree with the inputs.
+    assert.match(publish, /ALLOW_SHRINK=\$\(jq -r 'if \.gateOverrides\.allowShrink then "yes" else "no" end' release\/build-info\.json\)/)
+    assert.match(publish, /test "\$\(jq -r \.gateOverrides\.allowShrink release\/build-info\.json\)" = "\$INPUT_SHRINK"/)
+    assert.match(publish, /test "\$\(jq -r \.gateOverrides\.allowGrowth release\/build-info\.json\)" = "\$INPUT_GROWTH"/)
+    // And they are shown in the run summary and stated in the review issue.
+    assert.match(build, /gateOverrides\.allowShrink[^\n]*gateOverrides\.allowGrowth[^\n]*dist\/build-info\.json >> "\$GITHUB_STEP_SUMMARY"/)
+    assert.match(build, /--out notes\/issue-body\.md --build-info dist\/build-info\.json/)
   })
 
   test('review issues are opened even when a later job failed, from sanitised text only', () => {
-    assert.match(review, /\n {4}if: always\(\) && needs\.build\.result == 'success' && needs\.build\.outputs\.review != '0'\n/)
+    assert.match(review, /\n {4}if: always\(\) && github\.ref == 'refs\/heads\/main' && needs\.build\.result == 'success' && needs\.build\.outputs\.review != '0'\n/)
     assert.match(review, /needs: \[build, sign, publish\]/)
     assert.match(build, /npx --no-install tsx scripts\/issue-body\.ts --notes notes --out notes\/issue-body\.md/)
     assert.match(review, /cat notes\/issue-body\.md/)

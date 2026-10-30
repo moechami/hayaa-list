@@ -11,9 +11,10 @@ name: Monthly release
 #            OpenSSL and nothing else. No checkout, no npm, no GitHub token
 #            (`permissions: {}`); the key goes from the environment straight
 #            to OpenSSL and never touches the disk.
-#   publish  without the key: checks the serial, verifies every signature
-#            with OpenSSL and with the Node verifier (every check the app
-#            runs), and creates the GitHub release.
+#   publish  without the key: checks the serial (gh and jq only: no npm
+#            code runs in a step that holds the token), verifies every
+#            signature with OpenSSL and with the Node verifier (every check
+#            the app runs), and creates the GitHub release.
 #
 # Nothing is committed to the repository: each release carries the
 # sources.lock.json it was built from (signed), and the next build reads it
@@ -97,6 +98,10 @@ jobs:
       - name: Build (runs every gate; the previous release must be signed)
         run: npm run build -- --previous previous
 
+      - name: Show the gate overrides in the run summary (as recorded in build-info.json, which is signed)
+        run: |
+          jq -r '"Serial \(.serial): gate overrides allow_shrink \(.gateOverrides.allowShrink), allow_growth \(.gateOverrides.allowGrowth). Hosts \(.hostCount)."' dist/build-info.json >> "$GITHUB_STEP_SUMMARY"
+
       - name: Reproducibility (a second build must give identical bytes)
         run: |
           npm run build -- --out dist-repro --previous previous > /dev/null
@@ -120,7 +125,7 @@ jobs:
         name: Collect what needs a person (upstream text is sanitised into notes/issue-body.md)
         run: |
           cp dist/held-back.txt notes/held-back.txt
-          count=$(npx --no-install tsx scripts/issue-body.ts --notes notes --out notes/issue-body.md)
+          count=$(npx --no-install tsx scripts/issue-body.ts --notes notes --out notes/issue-body.md --build-info dist/build-info.json)
           echo "count=$count" >> "$GITHUB_OUTPUT"
 
       - name: Stage the release files (unsigned; the sign job adds the signatures)
@@ -202,8 +207,8 @@ jobs:
       contents: write
     env:
       SERIAL: ${{ needs.build.outputs.serial }}
-      ALLOW_SHRINK: ${{ inputs.allow_shrink && 'yes' || 'no' }}
-      ALLOW_GROWTH: ${{ inputs.allow_growth && 'yes' || 'no' }}
+      INPUT_SHRINK: ${{ inputs.allow_shrink && 'true' || 'false' }}
+      INPUT_GROWTH: ${{ inputs.allow_growth && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -233,11 +238,24 @@ jobs:
           test "$(node -p "require('./release/build-info.json').serial")" = "$SERIAL"
           test -f "release/hayaa-list-$SERIAL.bin.gz"
           test -f "release/hayaa-list-$SERIAL.txt"
+          test "$(jq -r .gateOverrides.allowShrink release/build-info.json)" = "$INPUT_SHRINK"
+          test "$(jq -r .gateOverrides.allowGrowth release/build-info.json)" = "$INPUT_GROWTH"
 
+      # gh and jq only: no npm, npx, tsx or node code runs in a step that holds this token.
       - name: The serial must still be newer than every release (no release yet passes; an API error fails)
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: npm run check-serial -- --repo "$GITHUB_REPOSITORY" --serial "$SERIAL"
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$SERIAL" =~ ^[0-9]{10}$ ]] || (( 10#$SERIAL > 4294967295 )); then echo "bad serial $SERIAL"; exit 1; fi
+          # Every release, drafts included; any API error fails the step.
+          tags=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name')
+          newest=0
+          while IFS= read -r tag; do
+            if [[ "$tag" =~ ^v([0-9]{10})$ ]] && (( 10#${BASH_REMATCH[1]} > newest )); then newest=$(( 10#${BASH_REMATCH[1]} )); fi
+          done <<< "$tags"
+          if (( 10#$SERIAL <= newest )); then echo "serial $SERIAL is not newer than the latest release v$newest"; exit 1; fi
+          echo "serial $SERIAL is newer than every release (newest so far: $newest)"
 
       - name: Verify every signature with OpenSSL
         run: |
@@ -253,7 +271,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          held=$(node -p "const b=require('./release/build-info.json').heldBack; b.topSites.length + b.topSiteSubdomains.length")
+          set -euo pipefail
+          # Read with jq from the signed build-info.json: this step holds the token.
+          held=$(jq '.heldBack.topSites + .heldBack.topSiteSubdomains | length' release/build-info.json)
+          ALLOW_SHRINK=$(jq -r 'if .gateOverrides.allowShrink then "yes" else "no" end' release/build-info.json)
+          ALLOW_GROWTH=$(jq -r 'if .gateOverrides.allowGrowth then "yes" else "no" end' release/build-info.json)
           gh release create "v$SERIAL" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
@@ -275,7 +297,8 @@ jobs:
   report-review:
     needs: [build, sign, publish]
     # Runs even when signing or publishing failed: what needs a person still needs one.
-    if: always() && needs.build.result == 'success' && needs.build.outputs.review != '0'
+    # From main only: a run dispatched on another branch never opens an issue.
+    if: always() && github.ref == 'refs/heads/main' && needs.build.result == 'success' && needs.build.outputs.review != '0'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:

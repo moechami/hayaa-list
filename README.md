@@ -192,10 +192,13 @@ A scheduled job attempts a release on the 1st of every month
    nothing but OpenSSL; the build never sees the key.
 5. A third job, without the key, checks the files are the ones the build
    made, verifies every signature with OpenSSL and with every check the app
-   runs, and publishes a GitHub release tagged `v<serial>`.
-6. It opens an issue listing anything new that was held back or kept at an
-   old pin, even when signing or publishing failed. Text from upstream is
-   reduced to safe characters and capped before it reaches an issue.
+   runs, and publishes a GitHub release tagged `v<serial>`. Its steps that
+   hold a GitHub token run only `gh` and `jq`, never code from npm.
+6. From `main` only, it opens an issue listing anything new that was held
+   back or kept at an old pin, and any gate override used, even when signing
+   or publishing failed. Text from upstream is reduced to safe characters
+   and capped before it reaches an issue. Gate overrides are also recorded
+   in the signed `build-info.json`, the run summary and the release notes.
 
 Nothing is committed to the repository by these jobs: each release carries
 the `sources.lock.json` it was built from, and the next build starts from
