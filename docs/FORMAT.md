@@ -227,7 +227,8 @@ checking its signature, to run its shrink and growth gates and to tell new
 held-back entries from ones already waiting for review. `hostCountHistory`
 holds the host counts of up to the last six releases, oldest first, this
 one last; the slow-shrink gate compares with its largest value.
-`gateOverrides` records whether the shrink or growth gates were skipped
+`heldBackEduGov` lists the education and government hosts left out until
+reviewed (`data/reviewed-edu-gov.txt`). `gateOverrides` records whether the shrink or growth gates were skipped
 (the workflow inputs `allow_shrink` and `allow_growth`), and
 `sourcesLockSha256` the SHA-256 of the `sources.lock.json` the release was
 built from.
@@ -243,6 +244,7 @@ built from.
     { "id": "hagezi-nsfw", "commit": "<40 hex>", "sha256": "<64 hex>", "lines": 92336, "hosts": 92336, "skippedLines": 0 }
   ],
   "heldBack": { "topSites": [], "topSiteSubdomains": [] },
+  "heldBackEduGov": ["xxx.lanl.gov"],
   "gateOverrides": { "allowShrink": false, "allowGrowth": false },
   "sourcesLockSha256": "<64 hex>"
 }

@@ -46,6 +46,8 @@ export type BuildInfo = {
   sources: SourceInfo[]
   /** Entries left out of this release until a person reviews them. */
   heldBack: { topSites: string[]; topSiteSubdomains: string[] }
+  /** Education and government hosts left out until reviewed (src/edugov.ts). */
+  heldBackEduGov: string[]
   /** The gate overrides this release was built with (workflow inputs allow_shrink, allow_growth). */
   gateOverrides: { allowShrink: boolean; allowGrowth: boolean }
   /** SHA-256 of the sources.lock.json this release was built from (attached to the release, signed). */
@@ -69,6 +71,7 @@ export const serializeBuildInfo = (info: BuildInfo): Uint8Array => {
     hostCountHistory: [...info.hostCountHistory],
     sources: info.sources.map((s) => ({ id: s.id, commit: s.commit, sha256: s.sha256, lines: s.lines, hosts: s.hosts, skippedLines: s.skippedLines })),
     heldBack: { topSites: [...info.heldBack.topSites], topSiteSubdomains: [...info.heldBack.topSiteSubdomains] },
+    heldBackEduGov: [...info.heldBackEduGov],
     gateOverrides: { allowShrink: info.gateOverrides.allowShrink, allowGrowth: info.gateOverrides.allowGrowth },
     sourcesLockSha256: info.sourcesLockSha256,
   }
@@ -103,6 +106,7 @@ export const parseBuildInfo = (text: string): BuildInfo => {
   })
   const h = o.heldBack
   if (!isObj(h) || !isStrings(h.topSites) || !isStrings(h.topSiteSubdomains)) throw new Error('build-info.json: bad heldBack')
+  if (!isStrings(o.heldBackEduGov)) throw new Error('build-info.json: bad heldBackEduGov')
   const g = o.gateOverrides
   if (!isObj(g) || typeof g.allowShrink !== 'boolean' || typeof g.allowGrowth !== 'boolean') throw new Error('build-info.json: bad gateOverrides')
   if (typeof o.sourcesLockSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(o.sourcesLockSha256)) throw new Error('build-info.json: bad sourcesLockSha256')
@@ -114,6 +118,7 @@ export const parseBuildInfo = (text: string): BuildInfo => {
     hostCountHistory: history as number[],
     sources,
     heldBack: { topSites: h.topSites, topSiteSubdomains: h.topSiteSubdomains },
+    heldBackEduGov: o.heldBackEduGov,
     gateOverrides: { allowShrink: g.allowShrink, allowGrowth: g.allowGrowth },
     sourcesLockSha256: o.sourcesLockSha256,
   }

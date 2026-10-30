@@ -41,6 +41,7 @@ const info = (patch: Partial<BuildInfo> = {}): BuildInfo => ({
     { id: 'hosts-format', commit: null, sha256: 'x', lines: 8, hosts: 7, skippedLines: 0 },
     { id: 'plain-format', commit: null, sha256: 'y', lines: 5, hosts: 4, skippedLines: 1 },
   ],
+  heldBackEduGov: [],
   heldBack: { topSites: [], topSiteSubdomains: [] },
   gateOverrides: { allowShrink: false, allowGrowth: false },
   sourcesLockSha256: 'e'.repeat(64),

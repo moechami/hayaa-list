@@ -89,5 +89,22 @@ export const KEYWORD_MATCHED_SOURCES: readonly string[] = ['blocklistproject-por
 export const MAX_SKIPPED_RATIO = 0.01
 export const MIN_SKIPPED_LINES = 100
 
+/**
+ * Education and government suffixes (src/edugov.ts). A listed host under one
+ * is held back until reviewed into data/reviewed-edu-gov.txt. The labels
+ * mark an ICANN suffix when they are not its top-level domain ("ac.uk",
+ * "sch.id", "k12.tr", "gob.mx", "gouv.fr", "go.jp", "gc.ca", "govt.nz",
+ * "gv.at", "ed.jp", "school.nz", "nhs.uk", "police.uk", "parliament.nz",
+ * "gub.uy", "gop.pk", "mod.gi"); edu, gov and mil also count as top-level
+ * domains. "go.it" is the Italian province of Gorizia, not a government
+ * suffix; "nic.in" is India's government network.
+ */
+export const EDU_GOV_LABELS: readonly string[] = [
+  'edu', 'gov', 'mil', 'ac', 'sch', 'k12', 'gob', 'gouv', 'go', 'gc', 'govt', 'gv', 'ed', 'school', 'nhs', 'police', 'parliament', 'gub', 'gop', 'mod',
+]
+export const EDU_GOV_TLDS: readonly string[] = ['edu', 'gov', 'mil']
+export const EDU_GOV_EXTRA_SUFFIXES: readonly string[] = ['nic.in']
+export const EDU_GOV_EXCLUDED_SUFFIXES: readonly string[] = ['go.it']
+
 /** Signing key id written into the manifest when HAYAA_LIST_KEY_ID is not set. */
 export const DEFAULT_KEY_ID = 'k1'

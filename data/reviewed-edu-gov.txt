@@ -1,0 +1,22 @@
+# Reviewed education and government hosts.
+#
+# A listed host whose registrable domain is under an education or
+# government public suffix (edu, gov, mil, ac.uk, sch.id, k12.tr, gob.mx,
+# gouv.fr, go.jp, nhs.uk and similar; src/edugov.ts and config.ts
+# EDU_GOV_*) is held back: left out of the release until a person reviews
+# it. Schools, universities, ministries and health services are almost never
+# adult sites, and the app's users cannot override the Blocker; a listed one
+# is usually a hijacked or spammed page, or a name that happens to contain a
+# word ("xxx.lanl.gov" was the arXiv preprint server, "erapornew" is an
+# Indonesian school's e-report system, "Jutiporn" a Thai name).
+#
+# A host named here, with the reason after "#", was reviewed as genuinely
+# adult and is listed. A line also covers the host's subdomains. Every other
+# education or government host stays held back, and the review issue lists
+# new ones.
+#
+# Review of 2026-10-30, by name only: 72 hosts were held back; these 2 are
+# plainly pornographic.
+
+pornpass2110.cid.edu  # explicit name ("pornpass")
+sextelefon.edu.pl  # explicit name (Polish "sex telefon", phone sex), a spammed edu.pl name

@@ -52,7 +52,7 @@ export const issueBody = (held: readonly string[], lock: readonly string[], over
     parts.push(
       '### Held back (not in this release until reviewed)',
       '',
-      'Review each into data/reviewed-top-hits.txt, data/reviewed-top-site-subdomains.txt, data/pending-review.txt or data/allowlist.txt.',
+      'Review each into data/reviewed-top-hits.txt, data/reviewed-top-site-subdomains.txt, data/reviewed-edu-gov.txt, data/pending-review.txt or data/allowlist.txt.',
       '',
       issueBlock(held),
       '',

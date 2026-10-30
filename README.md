@@ -109,6 +109,19 @@ inside a non-sexual or safe word ("sussextiles": the "sext" starts inside
 hide short tokens such as "hot", "cam", "ass" and "tit"; they never make a
 host removable on their own.
 
+### Education and government hosts
+
+A listed host under an education or government suffix of the Public Suffix
+List (`edu`, `gov`, `mil`, `ac.uk`, `sch.id`, `k12.tr`, `gob.mx`,
+`gouv.fr`, `go.jp`, `nhs.uk` and similar; `src/edugov.ts`) is **held
+back**: left out of the release, recorded in `build-info.json` and listed
+in the review issue, until a person reviews it as genuinely adult into
+`data/reviewed-edu-gov.txt`. This holds even for an entry the previous
+release listed. Schools, universities, ministries and health services are
+almost never adult sites; a listed one is usually a hijacked or spammed page
+or a name that happens to contain a word (`xxx.lanl.gov` was the arXiv
+preprint server).
+
 ### Review gates
 
 Popular sites need a person's review before the list blocks them:

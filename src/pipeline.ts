@@ -7,8 +7,9 @@
 //
 //   parse each source (format gate) → union → add reviewed additions → drop
 //   bare public suffixes → protected-name gate → false keyword matches →
-//   allowlist → review gates on popular sites (hold back new unreviewed
-//   entries) → drop hosts a listed parent already covers → shrink and growth
+//   allowlist → hold back education and government hosts → review gates on
+//   popular sites (hold back new unreviewed entries) → drop hosts a listed
+//   parent already covers → shrink and growth
 //   gates → compile (format v2) → canaries and negatives → starter list →
 //   gzip → manifest and build-info.json
 //
@@ -42,6 +43,7 @@ import { isPublicSuffix, parsePsl, registrableDomain, type PublicSuffixList } fr
 import { BUILD_INFO, BUILD_INFO_VERSION, serializeBuildInfo, type BuildInfo, type PreviousRelease, type SourceInfo } from './previous'
 import { MAX_SKIPPED_RATIO, MIN_SKIPPED_LINES, MIN_SOURCE_RATIO, MIN_TOTAL_RATIO } from './config'
 import { sha256Hex } from './hash'
+import { eduGovSuffix } from './edugov'
 import { isKeywordFalseMatch, parseKeywordRules, parseProtectedTerms, parseReasonedHosts, protectedTermsOf } from './protected'
 
 export { sha256Hex }
@@ -68,7 +70,11 @@ export type BuildInput = {
     keywordFalseMatches: string
     /** data/pending-review.txt: popular entries a person looked at and left undecided. */
     pendingReview: string
+    /** data/reviewed-edu-gov.txt: education or government hosts reviewed as adult. */
+    reviewedEduGov: string
   }
+  /** Education and government suffixes (config.ts EDU_GOV_*, src/edugov.ts). */
+  eduGov: { labels: readonly string[]; tlds: readonly string[]; extra: readonly string[]; excluded: readonly string[] }
   /** public_suffix_list.dat */
   psl: string
   /** Tranco CSV ("rank,domain" per line), most popular first. */
@@ -124,6 +130,7 @@ export type BuildReport = {
     unreviewedKeptFromPrevious: number
     heldBackTopSites: number
     heldBackTopSiteSubdomains: number
+    heldBackEduGov: number
     newHeldBack: number
     topSiteSubdomainEntries: number
   }
@@ -141,6 +148,8 @@ export type BuildOutput = {
   starter: string[]
   /** Entries left out of this release until reviewed. */
   heldBack: { topSites: string[]; topSiteSubdomains: string[] }
+  /** Education and government hosts left out until reviewed (data/reviewed-edu-gov.txt). */
+  heldBackEduGov: string[]
   /** Held-back entries that are neither in data/pending-review.txt nor held back by the previous release. */
   newHeldBack: string[]
   /** Unreviewed entries kept only because the previous release listed them. */
@@ -352,6 +361,13 @@ export const runBuild = (input: BuildInput): BuildOutput => {
   const reviewedProtected = asGate(() => parseReasonedHosts(input.data.reviewedProtected, 'reviewed-protected', normalizeDomainInput))
   const keywordRules = asGate(() => parseKeywordRules(input.data.keywordFalseMatches, normalizeDomainInput))
   const pending = parseHostRules(input.data.pendingReview, 'pending-review')
+  const reviewedEduGov = new Set(asGate(() => parseReasonedHosts(input.data.reviewedEduGov, 'reviewed-edu-gov', normalizeDomainInput)).keys())
+  const eduGovRules = {
+    labels: new Set(input.eduGov.labels),
+    tlds: new Set(input.eduGov.tlds),
+    extra: new Set(input.eduGov.extra),
+    excluded: new Set(input.eduGov.excluded),
+  }
 
   for (const h of additions) {
     if (isPublicSuffix(psl, h)) throw new GateError(`additions: "${h}" is a public suffix`)
@@ -415,7 +431,19 @@ export const runBuild = (input: BuildInput): BuildOutput => {
   const afterSubtree = applyAllowlist(union, allow.subtree)
   const afterExact = applyExactAllowlist(afterSubtree.hosts, allow.exact)
   const allowlistedCount = afterSubtree.removed + afterExact.removed
-  const listed = afterExact.hosts
+
+  // 4b. Education and government hosts are held back until a person reviews
+  //     them as adult (src/edugov.ts). Unlike the review gates below, this
+  //     holds back an entry even when the previous release listed it: the
+  //     point is to stop blocking schools and ministries, not to keep them.
+  const listed = new Set<string>()
+  const heldEduGov: string[] = []
+  for (const h of afterExact.hosts) {
+    if (eduGovSuffix(psl, eduGovRules, h) !== null && !coveredBy(reviewedEduGov, h)) heldEduGov.push(h)
+    else listed.add(h)
+  }
+  heldEduGov.sort()
+  for (const h of reviewedEduGov) if (eduGovSuffix(psl, eduGovRules, h) === null) warnings.push(`reviewed-edu-gov: "${h}" is not under an education or government suffix`)
 
   // 5. Review gate, top sites: every popular site the list blocks must have been reviewed.
   const ranked = parseTranco(input.tranco).slice(0, input.trancoTop)
@@ -608,6 +636,7 @@ export const runBuild = (input: BuildInput): BuildOutput => {
       : [...previousInfo.hostCountHistory, header.hostCount].slice(-input.shrinkHistory),
     sources: perSource,
     heldBack,
+    heldBackEduGov: heldEduGov,
     gateOverrides: { allowShrink: input.allowShrink, allowGrowth: input.allowGrowth },
     sourcesLockSha256: input.sourcesLockSha256,
   }
@@ -632,6 +661,7 @@ export const runBuild = (input: BuildInput): BuildOutput => {
     files,
     starter,
     heldBack,
+    heldBackEduGov: heldEduGov,
     newHeldBack: newHeld,
     keptFromPrevious: [...keptTop, ...keptSub].sort(),
     topSiteSubdomainEntries: reviewAid,
@@ -657,6 +687,7 @@ export const runBuild = (input: BuildInput): BuildOutput => {
         unreviewedKeptFromPrevious: keptTop.length + keptSub.length,
         heldBackTopSites: heldTop.length,
         heldBackTopSiteSubdomains: heldSub.length,
+        heldBackEduGov: heldEduGov.length,
         newHeldBack: newHeld.length,
         topSiteSubdomainEntries: reviewAid.length,
       },

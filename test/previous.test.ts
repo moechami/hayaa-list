@@ -40,6 +40,7 @@ const INFO: BuildInfo = {
   pathCount: 1,
   hostCountHistory: [3, 2],
   sources: [{ id: 's', commit: 'c'.repeat(40), sha256: 'a'.repeat(64), lines: 3, hosts: 2, skippedLines: 1 }],
+  heldBackEduGov: [],
   heldBack: { topSites: ['new-top.com'], topSiteSubdomains: [] },
   gateOverrides: { allowShrink: false, allowGrowth: true },
   sourcesLockSha256: 'a'.repeat(64),

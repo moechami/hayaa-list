@@ -273,7 +273,7 @@ jobs:
         run: |
           set -euo pipefail
           # Read with jq from the signed build-info.json: this step holds the token.
-          held=$(jq '.heldBack.topSites + .heldBack.topSiteSubdomains | length' release/build-info.json)
+          held=$(jq '.heldBack.topSites + .heldBack.topSiteSubdomains + .heldBackEduGov | length' release/build-info.json)
           ALLOW_SHRINK=$(jq -r 'if .gateOverrides.allowShrink then "yes" else "no" end' release/build-info.json)
           ALLOW_GROWTH=$(jq -r 'if .gateOverrides.allowGrowth then "yes" else "no" end' release/build-info.json)
           gh release create "v$SERIAL" \

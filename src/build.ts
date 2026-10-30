@@ -31,6 +31,10 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import {
   DEFAULT_KEY_ID,
+  EDU_GOV_EXCLUDED_SUFFIXES,
+  EDU_GOV_EXTRA_SUFFIXES,
+  EDU_GOV_LABELS,
+  EDU_GOV_TLDS,
   KEYWORD_MATCHED_SOURCES,
   MAX_NEW_HELD_BACK,
   MAX_NEW_REGISTRABLE_DOMAINS,
@@ -128,7 +132,9 @@ const main = async (): Promise<void> => {
         reviewedProtected: readData('reviewed-protected.txt'),
         keywordFalseMatches: readData('keyword-false-matches.txt'),
         pendingReview: readData('pending-review.txt'),
+        reviewedEduGov: readData('reviewed-edu-gov.txt'),
       },
+      eduGov: { labels: EDU_GOV_LABELS, tlds: EDU_GOV_TLDS, extra: EDU_GOV_EXTRA_SUFFIXES, excluded: EDU_GOV_EXCLUDED_SUFFIXES },
       psl,
       tranco,
       trancoTop: lock.tranco.top,
@@ -162,6 +168,7 @@ const main = async (): Promise<void> => {
   }
 
   for (const [name, bytes] of result.files) writeFileSync(join(out, name), bytes)
+  const previousEduGov = new Set(previous?.info.heldBackEduGov ?? [])
   writeFileSync(join(out, 'build-report.json'), JSON.stringify(result.report, null, 2) + '\n')
   // Review aids only: never attached to a release.
   const lines = (xs: readonly string[]): string => (xs.length ? xs.join('\n') + '\n' : '')
@@ -172,8 +179,11 @@ const main = async (): Promise<void> => {
     lines([
       ...result.heldBack.topSites.filter((h) => result.newHeldBack.includes(h)).map((h) => `top site: ${h}`),
       ...result.heldBack.topSiteSubdomains.filter((h) => result.newHeldBack.includes(h)).map((h) => `subdomain of a top site: ${h}`),
+      // Education and government hosts: new ones are listed, ones already held back by the previous release are counted.
+      ...result.heldBackEduGov.filter((h) => !previousEduGov.has(h)).map((h) => `education or government suffix: ${h}`),
       ...(() => {
-        const waiting = result.heldBack.topSites.length + result.heldBack.topSiteSubdomains.length - result.newHeldBack.length
+        const waiting =
+          result.heldBack.topSites.length + result.heldBack.topSiteSubdomains.length - result.newHeldBack.length + result.heldBackEduGov.filter((h) => previousEduGov.has(h)).length
         return waiting > 0 ? [`(and ${waiting} entries still waiting from earlier months or in data/pending-review.txt; see build-info.json)`] : []
       })(),
     ]),
@@ -181,6 +191,7 @@ const main = async (): Promise<void> => {
   writeFileSync(join(out, 'kept-unreviewed.txt'), lines(result.keptFromPrevious))
   writeFileSync(join(out, 'removed-protected.txt'), lines(result.removedProtected.map((r) => `${r.host} ${r.terms.join(',')}`)))
   writeFileSync(join(out, 'removed-keyword-false-matches.txt'), lines(result.removedKeywordFalseMatches))
+  writeFileSync(join(out, 'held-back-edu-gov.txt'), lines(result.heldBackEduGov))
 
   console.log(JSON.stringify(result.report, null, 2))
   // Sorted: the public log must not reveal the popularity order.
