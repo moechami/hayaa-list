@@ -6,8 +6,11 @@
 //   - manifest.json (+ .sig): names the list file, its sizes and hashes;
 //   - hayaa-list-<serial>.bin.gz: the list itself, checked against the
 //     manifest and fully validated, then decoded for the previous host set;
-//   - build-info.json (+ .sig): per-source counts, the host-count history and
-//     the entries held back for review.
+//   - build-info.json (+ .sig): per-source counts, the host-count history,
+//     the entries held back for review, the gate overrides used, and the
+//     SHA-256 of the sources.lock.json the release was built from;
+//   - sources.lock.json (+ .sig): must be exactly the lock build-info.json
+//     names, so a lock from one release can never be paired with another.
 // The plain-text list attached to a release is a convenience for people and
 // is never read: it is not signed.
 //
@@ -27,7 +30,8 @@ import { sha256Hex } from './hash'
 import { verifySignature } from './signing'
 
 export const BUILD_INFO = 'build-info.json'
-export const BUILD_INFO_VERSION = 2
+export const BUILD_INFO_VERSION = 3
+export const LOCK_FILE = 'sources.lock.json'
 
 export type SourceInfo = { id: string; commit: string | null; sha256: string; lines: number; hosts: number; skippedLines: number }
 
@@ -42,6 +46,10 @@ export type BuildInfo = {
   sources: SourceInfo[]
   /** Entries left out of this release until a person reviews them. */
   heldBack: { topSites: string[]; topSiteSubdomains: string[] }
+  /** The gate overrides this release was built with (workflow inputs allow_shrink, allow_growth). */
+  gateOverrides: { allowShrink: boolean; allowGrowth: boolean }
+  /** SHA-256 of the sources.lock.json this release was built from (attached to the release, signed). */
+  sourcesLockSha256: string
 }
 
 export type PreviousRelease = {
@@ -61,6 +69,8 @@ export const serializeBuildInfo = (info: BuildInfo): Uint8Array => {
     hostCountHistory: [...info.hostCountHistory],
     sources: info.sources.map((s) => ({ id: s.id, commit: s.commit, sha256: s.sha256, lines: s.lines, hosts: s.hosts, skippedLines: s.skippedLines })),
     heldBack: { topSites: [...info.heldBack.topSites], topSiteSubdomains: [...info.heldBack.topSiteSubdomains] },
+    gateOverrides: { allowShrink: info.gateOverrides.allowShrink, allowGrowth: info.gateOverrides.allowGrowth },
+    sourcesLockSha256: info.sourcesLockSha256,
   }
   return new TextEncoder().encode(JSON.stringify(ordered, null, 2) + '\n')
 }
@@ -69,9 +79,15 @@ const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object
 const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0
 const isStrings = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string')
 
-/** Parse and check build-info.json; throws on anything malformed (a damaged file must not weaken a gate). */
+/**
+ * Parse and check build-info.json; throws on anything malformed (a damaged
+ * file must not weaken a gate). The manifest and the lock are signed by the
+ * same key, so a file carrying their version fields ("format",
+ * "lockVersion") is refused even before its own version is checked.
+ */
 export const parseBuildInfo = (text: string): BuildInfo => {
   const o: unknown = JSON.parse(text)
+  if (isObj(o) && ('format' in o || 'lockVersion' in o)) throw new Error('build-info.json: not a build-info file (it carries the field of another signed file)')
   if (!isObj(o) || o.buildInfoVersion !== BUILD_INFO_VERSION) throw new Error('build-info.json: unknown buildInfoVersion')
   if (!isCount(o.serial) || !isCount(o.hostCount) || !isCount(o.pathCount)) throw new Error('build-info.json: bad counts')
   const history = o.hostCountHistory
@@ -87,6 +103,9 @@ export const parseBuildInfo = (text: string): BuildInfo => {
   })
   const h = o.heldBack
   if (!isObj(h) || !isStrings(h.topSites) || !isStrings(h.topSiteSubdomains)) throw new Error('build-info.json: bad heldBack')
+  const g = o.gateOverrides
+  if (!isObj(g) || typeof g.allowShrink !== 'boolean' || typeof g.allowGrowth !== 'boolean') throw new Error('build-info.json: bad gateOverrides')
+  if (typeof o.sourcesLockSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(o.sourcesLockSha256)) throw new Error('build-info.json: bad sourcesLockSha256')
   return {
     buildInfoVersion: BUILD_INFO_VERSION,
     serial: o.serial,
@@ -95,7 +114,22 @@ export const parseBuildInfo = (text: string): BuildInfo => {
     hostCountHistory: history as number[],
     sources,
     heldBack: { topSites: h.topSites, topSiteSubdomains: h.topSiteSubdomains },
+    gateOverrides: { allowShrink: g.allowShrink, allowGrowth: g.allowGrowth },
+    sourcesLockSha256: o.sourcesLockSha256,
   }
+}
+
+/**
+ * Throws unless `<dir>/sources.lock.json` is the lock that the build-info.json
+ * of the same folder names (its SHA-256). Both files are signed, but
+ * separately: without this check a lock from one release could be attached
+ * to another and steer the next re-pin's fallback.
+ */
+export const assertLockPairing = (dir: string, info: BuildInfo): void => {
+  const lockPath = join(dir, LOCK_FILE)
+  if (!existsSync(lockPath)) throw new Error(`${dir}: ${LOCK_FILE} is missing`)
+  const got = sha256Hex(new Uint8Array(readFileSync(lockPath)))
+  if (got !== info.sourcesLockSha256) throw new Error(`${dir}: ${LOCK_FILE} is not the lock ${BUILD_INFO} names (sha256 ${got}, expected ${info.sourcesLockSha256})`)
 }
 
 /** Every public key in `keysDir` (files named <keyId>.pub.pem), keyed by key id. */
@@ -145,6 +179,8 @@ export const readPreviousDir = (dir: string, keys: ReadonlyMap<string, string> |
   if (keys !== null) {
     assertSigned(dir, 'manifest.json', keys)
     assertSigned(dir, BUILD_INFO, keys)
+    if (!existsSync(join(dir, LOCK_FILE))) throw new Error(`${dir}: ${LOCK_FILE} is missing`)
+    assertSigned(dir, LOCK_FILE, keys)
   }
   const manifestBytes = new Uint8Array(readFileSync(manifestPath))
   const problem = validateManifest(manifestBytes)
@@ -165,6 +201,8 @@ export const readPreviousDir = (dir: string, keys: ReadonlyMap<string, string> |
   if (info.serial !== m.serial || info.hostCount !== m.hostCount || info.pathCount !== decoded.paths.length) {
     throw new Error(`${dir}: ${BUILD_INFO} does not describe the list the manifest names`)
   }
+  // A signed release must carry its own lock; a local dist/ has none, but a lock that is there must match.
+  if (keys !== null || existsSync(join(dir, LOCK_FILE))) assertLockPairing(dir, info)
   return { hosts: new Set(decoded.hosts), info, origin: `${dir} (serial ${m.serial}${keys ? ', signatures verified' : ', unsigned local build'})` }
 }
 
@@ -257,7 +295,9 @@ export const fetchPreviousRelease = async (
     if (!res.ok) throw new Error(`HTTP ${res.status} downloading ${name} from ${latest.tag}`)
     writeFileSync(join(outDir, name), new Uint8Array(await res.arrayBuffer()))
   }
-  for (const name of ['manifest.json', BUILD_INFO, 'sources.lock.json']) assertSigned(outDir, name, keys)
+  for (const name of ['manifest.json', BUILD_INFO, LOCK_FILE]) assertSigned(outDir, name, keys)
+  // The re-pin reads this lock before the build reads the rest: check that it belongs to this release now.
+  assertLockPairing(outDir, parseBuildInfo(readFileSync(join(outDir, BUILD_INFO), 'utf8')))
   const serial = (JSON.parse(readFileSync(join(outDir, 'manifest.json'), 'utf8')) as { serial?: unknown }).serial
   if (serial !== Number(m[1])) throw new Error(`release ${latest.tag}: its signed manifest names serial ${String(serial)}`)
   return latest.tag

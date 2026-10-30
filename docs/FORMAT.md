@@ -9,7 +9,7 @@ A release has these files:
 | `starter.bin` | The starter list (exactly 50 hosts), binary format v2, not compressed, header serial 0 |
 | `manifest.json` | Describes the list file: serial, sizes, hashes, probes |
 | `manifest.json.sig` | Signature over `manifest.json` |
-| `build-info.json` | Per-source line, host and skipped-line counts, the recent host counts, and the entries held back for review; read by the next build, never by the app |
+| `build-info.json` | Per-source line, host and skipped-line counts, the recent host counts, the entries held back for review, the gate overrides used and the SHA-256 of the release's `sources.lock.json`; read by the next build, never by the app |
 | `build-info.json.sig` | Signature over `build-info.json` |
 | `sources.lock.json` | The exact inputs the release was built from |
 | `sources.lock.json.sig` | Signature over `sources.lock.json` |
@@ -187,6 +187,14 @@ produces. The public keys are in `keys/` as PEM SubjectPublicKeyInfo.
 those files. The app does not read them; the next monthly build does, and
 refuses a previous release whose signatures do not verify.
 
+The same key signs all three files, so each reader refuses the other two:
+a manifest needs `"format": 2`, `build-info.json` its own
+`buildInfoVersion` and the lock its own `lockVersion`, and
+`build-info.json` and the lock are refused when they carry another file's
+version field. `build-info.json` also names the SHA-256 of the
+`sources.lock.json` attached to the same release; a lock that does not
+match (one taken from another release) is refused.
+
 ## Compression
 
 `hayaa-list-<serial>.bin.gz` is a single gzip member written by pako at
@@ -219,10 +227,14 @@ checking its signature, to run its shrink and growth gates and to tell new
 held-back entries from ones already waiting for review. `hostCountHistory`
 holds the host counts of up to the last six releases, oldest first, this
 one last; the slow-shrink gate compares with its largest value.
+`gateOverrides` records whether the shrink or growth gates were skipped
+(the workflow inputs `allow_shrink` and `allow_growth`), and
+`sourcesLockSha256` the SHA-256 of the `sources.lock.json` the release was
+built from.
 
 ```json
 {
-  "buildInfoVersion": 2,
+  "buildInfoVersion": 3,
   "serial": 2026110101,
   "hostCount": 1104537,
   "pathCount": 0,
@@ -230,6 +242,8 @@ one last; the slow-shrink gate compares with its largest value.
   "sources": [
     { "id": "hagezi-nsfw", "commit": "<40 hex>", "sha256": "<64 hex>", "lines": 92336, "hosts": 92336, "skippedLines": 0 }
   ],
-  "heldBack": { "topSites": [], "topSiteSubdomains": [] }
+  "heldBack": { "topSites": [], "topSiteSubdomains": [] },
+  "gateOverrides": { "allowShrink": false, "allowGrowth": false },
+  "sourcesLockSha256": "<64 hex>"
 }
 ```

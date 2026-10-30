@@ -46,6 +46,7 @@ import {
 import { fetchPinned, readLock } from './lock'
 import { GateError, runBuild, serialFor } from './pipeline'
 import { readPreviousDir, readPublicKeys, type PreviousRelease } from './previous'
+import { sha256Hex } from './hash'
 
 const ROOT = resolve(__dirname, '..')
 const CACHE = join(ROOT, '.cache', 'inputs')
@@ -88,6 +89,8 @@ const main = async (): Promise<void> => {
   const serial = resolveSerial()
   const keyId = process.env.HAYAA_LIST_KEY_ID ?? DEFAULT_KEY_ID
   const lock = readLock(join(ROOT, 'sources.lock.json'))
+  // Recorded in the signed build-info.json: the release must carry exactly this lock.
+  const sourcesLockSha256 = sha256Hex(new Uint8Array(readFileSync(join(ROOT, 'sources.lock.json'))))
   if (lock.tranco.listId !== TRANCO_LIST_ID) {
     throw new Error(`sources.lock.json pins Tranco list ${lock.tranco.listId} but src/config.ts names ${TRANCO_LIST_ID}; run npm run update-lock`)
   }
@@ -144,6 +147,7 @@ const main = async (): Promise<void> => {
       maxTotalGrowth: MAX_TOTAL_GROWTH,
       maxSourceGrowth: MAX_SOURCE_GROWTH,
       maxNewRegistrableDomains: MAX_NEW_REGISTRABLE_DOMAINS,
+      sourcesLockSha256,
     })
   } catch (e) {
     if (e instanceof GateError) {

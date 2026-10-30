@@ -18,6 +18,7 @@
 
 import { existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { assertLockPairing, BUILD_INFO, LOCK_FILE, parseBuildInfo } from '../src/previous'
 import { checkRelease } from '../src/release-check'
 import { verifySignature } from '../src/signing'
 
@@ -53,6 +54,18 @@ const main = (): void => {
     }
     if (!verifySignature(new Uint8Array(readFileSync(path)), new Uint8Array(readFileSync(`${path}.sig`)), pub)) {
       throw new Error(`verification FAILED: ${name}.sig does not verify`)
+    }
+  }
+  // build-info.json must describe this list and name this exact lock (both signed, separately).
+  if (existsSync(join(dir, BUILD_INFO))) {
+    const info = parseBuildInfo(readFileSync(join(dir, BUILD_INFO), 'utf8'))
+    if (info.serial !== result.serial) throw new Error(`verification FAILED: ${BUILD_INFO} names serial ${info.serial}, the manifest ${result.serial}`)
+    if (release || existsSync(join(dir, LOCK_FILE))) {
+      try {
+        assertLockPairing(dir, info)
+      } catch (e) {
+        throw new Error(`verification FAILED: ${e instanceof Error ? e.message : String(e)}`)
+      }
     }
   }
   console.log(

@@ -2,6 +2,7 @@
 //
 // A small, fully local build input for the pipeline tests: no network.
 
+import { createHash } from 'node:crypto'
 import type { BuildInput } from '../src/pipeline'
 
 /** A Public Suffix List with the rules the tests need, padded past the truncation guard. */
@@ -18,6 +19,10 @@ export const SYNTHETIC_PSL = [
   'blogspot.com',
   ...Array.from({ length: 1000 }, (_, i) => `filler${i}`),
 ].join('\n')
+
+/** The lock a synthetic release carries, and its SHA-256 (recorded in build-info.json). */
+export const SYNTHETIC_LOCK = '{"lockVersion":1}\n'
+export const SYNTHETIC_LOCK_SHA256 = createHash('sha256').update(SYNTHETIC_LOCK).digest('hex')
 
 export const baseInput = (): BuildInput => ({
   sources: [
@@ -74,4 +79,5 @@ export const baseInput = (): BuildInput => ({
   maxTotalGrowth: 0.15,
   maxSourceGrowth: 0.3,
   maxNewRegistrableDomains: 50_000,
+  sourcesLockSha256: SYNTHETIC_LOCK_SHA256,
 })

@@ -12,6 +12,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, describe, test } from 'node:test'
 import { serialProblem } from '../scripts/check-serial'
+import { parseLock } from '../src/lock'
+import { validateManifest } from '../src/manifest'
 import { runBuild } from '../src/pipeline'
 import {
   fetchPreviousRelease,
@@ -26,19 +28,21 @@ import {
   type FetchLike,
 } from '../src/previous'
 import { signManifest } from '../src/signing'
-import { baseInput } from './synthetic'
+import { SYNTHETIC_LOCK, baseInput } from './synthetic'
 
 const tmp = mkdtempSync(join(tmpdir(), 'hayaa-list-prev-'))
 after(() => rmSync(tmp, { recursive: true, force: true }))
 
 const INFO: BuildInfo = {
-  buildInfoVersion: 2,
+  buildInfoVersion: 3,
   serial: 2026110101,
   hostCount: 2,
   pathCount: 1,
   hostCountHistory: [3, 2],
   sources: [{ id: 's', commit: 'c'.repeat(40), sha256: 'a'.repeat(64), lines: 3, hosts: 2, skippedLines: 1 }],
   heldBack: { topSites: ['new-top.com'], topSiteSubdomains: [] },
+  gateOverrides: { allowShrink: false, allowGrowth: true },
+  sourcesLockSha256: 'a'.repeat(64),
 }
 
 const keyPair = (): { priv: string; pub: string } => {
@@ -54,7 +58,7 @@ const releaseDir = (priv: string | null, edit?: (dir: string) => void): string =
   const d = mkdtempSync(join(tmp, 'rel-'))
   const out = runBuild(baseInput())
   for (const [name, bytes] of out.files) writeFileSync(join(d, name), bytes)
-  writeFileSync(join(d, 'sources.lock.json'), '{"lockVersion":1}\n')
+  writeFileSync(join(d, 'sources.lock.json'), SYNTHETIC_LOCK)
   if (priv) for (const name of ['manifest.json', 'build-info.json', 'sources.lock.json']) writeFileSync(join(d, `${name}.sig`), signManifest(readFileSync(join(d, name)), priv))
   edit?.(d)
   return d
@@ -70,11 +74,49 @@ describe('build-info.json', () => {
   test('a damaged file is refused, never read as empty', () => {
     assert.throws(() => parseBuildInfo('{}'), /buildInfoVersion/)
     assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, buildInfoVersion: 1 })), /buildInfoVersion/)
+    assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, buildInfoVersion: 2 })), /buildInfoVersion/)
+    assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, gateOverrides: { allowShrink: 'no', allowGrowth: false } })), /gateOverrides/)
+    assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, gateOverrides: undefined })), /gateOverrides/)
+    assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, sourcesLockSha256: 'A'.repeat(64) })), /sourcesLockSha256/)
     assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, hostCount: -1 })), /bad counts/)
     assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, heldBack: { topSites: [1] } })), /heldBack/)
     assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, hostCountHistory: [] })), /hostCountHistory/)
     assert.throws(() => parseBuildInfo(JSON.stringify({ ...INFO, hostCountHistory: [5] })), /hostCountHistory/) // must end with hostCount
     assert.throws(() => parseBuildInfo('not json'))
+  })
+})
+
+describe('domain separation: each signed file is refused by the readers of the other two', () => {
+  // The same key signs all three, so a signature over one must never let it pass as another.
+  const d = releaseDir(null)
+  const realLock = readFileSync(join(__dirname, '..', 'sources.lock.json'), 'utf8')
+  const manifest = readFileSync(join(d, 'manifest.json'))
+  const buildInfo = readFileSync(join(d, 'build-info.json'))
+
+  test('the real files pass their own readers', () => {
+    assert.equal(validateManifest(new Uint8Array(manifest)), null)
+    assert.equal(parseBuildInfo(buildInfo.toString('utf8')).serial, 2026110101)
+    assert.equal(parseLock(realLock).lockVersion, 1)
+  })
+
+  test('the manifest reader (format 2, the app\'s rules) refuses build-info.json and the lock', () => {
+    assert.equal(validateManifest(new Uint8Array(buildInfo)), 'format must be 2')
+    assert.notEqual(validateManifest(new TextEncoder().encode(realLock)), null)
+    assert.equal(validateManifest(new TextEncoder().encode(JSON.stringify(JSON.parse(realLock), null, 2) + '\n')), 'format must be 2')
+  })
+
+  test('the build-info reader refuses the manifest and the lock, even with a buildInfoVersion added', () => {
+    assert.throws(() => parseBuildInfo(manifest.toString('utf8')), /another signed file/)
+    assert.throws(() => parseBuildInfo(realLock), /another signed file/)
+    const lockWithVersion = JSON.stringify({ ...JSON.parse(realLock), buildInfoVersion: 3 })
+    assert.throws(() => parseBuildInfo(lockWithVersion), /another signed file/)
+  })
+
+  test('the lock reader refuses the manifest and build-info.json, even with a lockVersion added', () => {
+    assert.throws(() => parseLock(manifest.toString('utf8')), /another signed file/)
+    assert.throws(() => parseLock(buildInfo.toString('utf8')), /another signed file/)
+    assert.throws(() => parseLock(JSON.stringify({ ...JSON.parse(buildInfo.toString('utf8')), lockVersion: 1 })), /another signed file/)
+    assert.throws(() => parseLock('{"sources":[]}'), /unknown lockVersion/)
   })
 })
 
@@ -96,6 +138,20 @@ describe('reading a previous release from a folder', () => {
     })
     assert.throws(() => readPreviousDir(forgedInfo, keys), /build-info.json.sig does not verify/)
     assert.throws(() => readPreviousDir(releaseDir(key.priv), new Map()), /no public keys/)
+  })
+
+  test('the signed lock must be the one the signed build-info.json names', () => {
+    const swapped = releaseDir(key.priv, (dir) => {
+      const other = '{"lockVersion":1,"from":"another release"}\n'
+      writeFileSync(join(dir, 'sources.lock.json'), other)
+      writeFileSync(join(dir, 'sources.lock.json.sig'), signManifest(new TextEncoder().encode(other), key.priv))
+    })
+    assert.throws(() => readPreviousDir(swapped, keys), /sources.lock.json is not the lock build-info.json names/)
+    assert.throws(() => readPreviousDir(releaseDir(key.priv, (dir) => rmSync(join(dir, 'sources.lock.json'))), keys), /sources.lock.json is missing/)
+    assert.throws(() => readPreviousDir(releaseDir(key.priv, (dir) => rmSync(join(dir, 'sources.lock.json.sig'))), keys), /sources.lock.json.sig is missing/)
+    // A local dist/ has no lock: nothing to pair. One that is there must match.
+    assert.ok(readPreviousDir(releaseDir(null, (dir) => rmSync(join(dir, 'sources.lock.json'))), null))
+    assert.throws(() => readPreviousDir(releaseDir(null, (dir) => writeFileSync(join(dir, 'sources.lock.json'), '{}\n')), null), /is not the lock/)
   })
 
   test('the list file must match the signed manifest exactly', () => {
@@ -196,6 +252,15 @@ describe('fetching the previous release from GitHub', () => {
     await assert.rejects(fetchPreviousRelease('o/r', join(tmp, 'm2'), undefined, fakeFetch(serve(releaseDir(otherKey.priv))), keys), /does not verify/)
     const forgedLock = releaseDir(key.priv, (dir) => writeFileSync(join(dir, 'sources.lock.json'), '{"lockVersion":1,"x":1}\n'))
     await assert.rejects(fetchPreviousRelease('o/r', join(tmp, 'm3'), undefined, fakeFetch(serve(forgedLock)), keys), /sources.lock.json.sig does not verify/)
+  })
+
+  test('a correctly signed lock from another release is refused before the re-pin can read it', async () => {
+    const d = releaseDir(key.priv, (dir) => {
+      const other = '{"lockVersion":1,"from":"another release"}\n'
+      writeFileSync(join(dir, 'sources.lock.json'), other)
+      writeFileSync(join(dir, 'sources.lock.json.sig'), signManifest(new TextEncoder().encode(other), key.priv))
+    })
+    await assert.rejects(fetchPreviousRelease('o/r', join(tmp, 'pair'), undefined, fakeFetch(serve(d)), keys), /is not the lock build-info.json names/)
   })
 
   test('a signed manifest of another serial attached to a newer tag is refused', async () => {

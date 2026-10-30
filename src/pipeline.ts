@@ -100,6 +100,8 @@ export type BuildInput = {
   maxTotalGrowth: number
   maxSourceGrowth: number
   maxNewRegistrableDomains: number
+  /** SHA-256 of the sources.lock.json the build read, recorded in the signed build-info.json. */
+  sourcesLockSha256: string
 }
 
 export type BuildReport = {
@@ -305,6 +307,7 @@ const matchingRoot = (hosts: ReadonlySet<string>, host: string): string => {
 
 export const runBuild = (input: BuildInput): BuildOutput => {
   const warnings: string[] = []
+  if (!/^[0-9a-f]{64}$/.test(input.sourcesLockSha256)) throw new GateError('sourcesLockSha256 must be 64 lowercase hex digits')
   const psl: PublicSuffixList = parsePsl(input.psl)
   const previousHosts: ReadonlySet<string> = input.previous?.hosts ?? new Set<string>()
   const previousInfo = input.previous?.info ?? null
@@ -605,6 +608,8 @@ export const runBuild = (input: BuildInput): BuildOutput => {
       : [...previousInfo.hostCountHistory, header.hostCount].slice(-input.shrinkHistory),
     sources: perSource,
     heldBack,
+    gateOverrides: { allowShrink: input.allowShrink, allowGrowth: input.allowGrowth },
+    sourcesLockSha256: input.sourcesLockSha256,
   }
 
   // Plain-text form of the list: hosts, then page entries, each sorted.

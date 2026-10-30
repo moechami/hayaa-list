@@ -10,7 +10,7 @@ import { describe, test } from 'node:test'
 import { decodeHayaaList, hayaaListMatches } from '../src/format'
 import { GateError, brandKey, runBuild, sameBrand, type BuildInput } from '../src/pipeline'
 import { parseBuildInfo, type BuildInfo, type PreviousRelease } from '../src/previous'
-import { baseInput } from './synthetic'
+import { SYNTHETIC_LOCK_SHA256, baseInput } from './synthetic'
 
 const build = (patch: Partial<BuildInput> = {}, data: Partial<BuildInput['data']> = {}): ReturnType<typeof runBuild> => {
   const input = baseInput()
@@ -32,7 +32,7 @@ const gate = (fn: () => unknown, message: RegExp): GateError => {
 const hostsOf = (out: ReturnType<typeof runBuild>): string[] => decodeHayaaList(out.files.get('hayaa-list-2026110101.bin')!).hosts.sort()
 
 const info = (patch: Partial<BuildInfo> = {}): BuildInfo => ({
-  buildInfoVersion: 2,
+  buildInfoVersion: 3,
   hostCountHistory: [patch.hostCount ?? 6],
   serial: 2026100101,
   hostCount: 6,
@@ -42,6 +42,8 @@ const info = (patch: Partial<BuildInfo> = {}): BuildInfo => ({
     { id: 'plain-format', commit: null, sha256: 'y', lines: 5, hosts: 4, skippedLines: 1 },
   ],
   heldBack: { topSites: [], topSiteSubdomains: [] },
+  gateOverrides: { allowShrink: false, allowGrowth: false },
+  sourcesLockSha256: 'e'.repeat(64),
   ...patch,
 })
 
@@ -310,6 +312,15 @@ describe('build-info.json', () => {
       ],
     )
     assert.deepEqual(parsed.heldBack.topSites, ['adult-cdn.com', 'adult-two.com'])
+  })
+
+  test('records the gate overrides and the lock it was built from (signed with the release)', () => {
+    const plain = parseBuildInfo(new TextDecoder().decode(build().files.get('build-info.json')))
+    assert.deepEqual(plain.gateOverrides, { allowShrink: false, allowGrowth: false })
+    assert.equal(plain.sourcesLockSha256, SYNTHETIC_LOCK_SHA256)
+    const forced = parseBuildInfo(new TextDecoder().decode(build({ allowShrink: true, allowGrowth: true }).files.get('build-info.json')))
+    assert.deepEqual(forced.gateOverrides, { allowShrink: true, allowGrowth: true })
+    gate(() => build({ sourcesLockSha256: 'not a hash' }), /sourcesLockSha256/)
   })
 
   test('the manifest the app parses carries none of it', () => {

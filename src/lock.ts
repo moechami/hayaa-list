@@ -60,10 +60,20 @@ export const trancoUrl = (listId: string, top: number): string => `https://tranc
 const SHA1 = /^[0-9a-f]{40}$/
 const HEX64 = /^[0-9a-f]{64}$/
 
-/** Read and sanity-check the lock: every URL must be the pinned form of its commit or list ID. */
-export const readLock = (path: string): Lock => {
-  const lock = JSON.parse(readFileSync(path, 'utf8')) as Lock
+/**
+ * Parse and sanity-check a lock: every URL must be the pinned form of its
+ * commit or list ID. The three signed files of a release (manifest.json,
+ * build-info.json, sources.lock.json) are signed by the same key, so each
+ * reader refuses the other two: a lock needs its own lockVersion and must
+ * not carry the manifest's "format" or build-info's "buildInfoVersion".
+ */
+export const parseLock = (text: string): Lock => {
+  const raw: unknown = JSON.parse(text)
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new Error('unknown lockVersion')
+  if ('format' in raw || 'buildInfoVersion' in raw) throw new Error('not a lock: it carries the field of another signed file')
+  const lock = raw as Lock
   if (lock.lockVersion !== 1) throw new Error('unknown lockVersion')
+  if (!Array.isArray(lock.sources) || typeof lock.publicSuffixList !== 'object' || typeof lock.tranco !== 'object') throw new Error('lock: sources, publicSuffixList or tranco missing')
   const ids = new Set<string>()
   for (const s of lock.sources) {
     if (ids.has(s.id)) throw new Error(`duplicate source id ${s.id}`)
@@ -84,6 +94,9 @@ export const readLock = (path: string): Lock => {
   if (!/^[A-Z0-9]{4,8}$/.test(t.listId) || !HEX64.test(t.sha256) || t.url !== trancoUrl(t.listId, t.top)) throw new Error('tranco: not pinned')
   return lock
 }
+
+/** Read and check the lock at `path` (parseLock). */
+export const readLock = (path: string): Lock => parseLock(readFileSync(path, 'utf8'))
 
 export const writeLock = (path: string, lock: Lock): void => writeFileSync(path, JSON.stringify(lock, null, 2) + '\n')
 

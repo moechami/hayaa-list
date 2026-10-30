@@ -16,7 +16,7 @@ import { checkRelease } from '../src/release-check'
 import { productionKeyProblem, SIGNED_FILES } from '../scripts/sign'
 import { publicKeyPemOf, samePublicKey, signManifest, verifyManifest } from '../src/signing'
 import { bytesOf } from './helpers'
-import { baseInput } from './synthetic'
+import { SYNTHETIC_LOCK, baseInput } from './synthetic'
 
 const keyPair = (namedCurve = 'prime256v1'): { priv: string; pub: string } => {
   const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve })
@@ -141,7 +141,7 @@ describe('npm run verify -- --release (the publish job)', () => {
   const fresh = (signExtra: boolean): string => {
     const d = mkdtempSync(join(tmp, 'verify-'))
     for (const [name, bytes] of out.files) writeFileSync(join(d, name), bytes)
-    writeFileSync(join(d, 'sources.lock.json'), '{}\n')
+    writeFileSync(join(d, 'sources.lock.json'), SYNTHETIC_LOCK)
     writeFileSync(join(d, 'k.pub.pem'), k.pub)
     const names = signExtra ? SIGNED_FILES : (['manifest.json'] as const)
     for (const n of names) writeFileSync(join(d, `${n}.sig`), signManifest(readFileSync(join(d, n)), k.priv))
@@ -166,5 +166,15 @@ describe('npm run verify -- --release (the publish job)', () => {
     const tampered = verify(d)
     assert.equal(tampered.status, 1)
     assert.match(tampered.out, /sources\.lock\.json\.sig does not verify/)
+  })
+
+  test('fails when the signed lock is not the one the signed build-info.json names (a lock from another release)', () => {
+    const d = fresh(true)
+    const other = '{"lockVersion":1,"other":true}\n'
+    writeFileSync(join(d, 'sources.lock.json'), other)
+    writeFileSync(join(d, 'sources.lock.json.sig'), signManifest(new TextEncoder().encode(other), k.priv))
+    const r = verify(d, '--release')
+    assert.equal(r.status, 1)
+    assert.match(r.out, /sources\.lock\.json is not the lock build-info\.json names/)
   })
 })
