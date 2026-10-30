@@ -21,3 +21,8 @@ erotikchat4free.org     # sex chat
 hentaivietsub.com       # explicit animation
 gaym.com                # hook-up service
 pcmax.jp                # hook-up (deai) service
+
+# 4chan is blocked by founder decision (data/reviewed-top-hits.txt); these
+# are its image and second domains, which no source lists (2026-10-30).
+4cdn.org                # 4chan image server
+4channel.org            # 4chan second domain

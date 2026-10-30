@@ -1,0 +1,250 @@
+# Pending review: popular entries a person has looked at and left undecided.
+#
+# An unreviewed entry in the top 10,000 sites, or a listed subdomain of one,
+# is held back (left out of the release) until it is reviewed into
+# data/reviewed-top-hits.txt, data/reviewed-top-site-subdomains.txt or
+# data/allowlist.txt. A host listed here stays held back the same way, but
+# does not count toward the limit of new held-back entries per release; the
+# monthly review issue counts these entries instead of listing them.
+#
+# One host, or a "*." rule for a whole platform, per line; the comment of
+# each section says why its entries are undecided. A host reviewed into
+# data/reviewed-top-site-subdomains.txt or data/allowlist.txt wins over a
+# rule here.
+
+# --- Platforms whose sample was not mostly explicit (2026-10-30) ---
+# Their pages with explicit names are reviewed one by one in
+# data/reviewed-top-site-subdomains.txt; every other listed page waits here.
+*.itch.io             # game developer pages; the sample was mostly ordinary developers
+*.fc2.com             # blogs and personal pages; most names are Japanese and unclear
+*.homestead.com       # personal sites; most names unclear
+*.tripod.com          # personal sites; many celebrity fan pages
+*.angelfire.com       # personal sites; mostly random-letter names
+*.pixnet.net          # blogs; random-letter names
+*.webs.com            # personal sites; most names unclear
+*.no.sapo.pt          # SAPO personal pages; most names unclear
+*.home.sapo.pt        # SAPO personal pages; most names unclear
+*.com.sapo.pt         # SAPO personal pages; most names unclear
+*.do.sapo.pt          # SAPO personal pages; most names unclear
+
+# --- Single hosts whose names are not clearly adult (2026-10-30) ---
+300dates.hop.clickbank.net
+43fdbzkp8fun1uahnfygkr0mfb.hop.clickbank.net
+472e556fa4f3c90554df-abe63b15e612e018017b3c63b4a36206.ssl.cf3.rackcdn.com
+5e4fbbec03a87.site123.me
+5e534df566c70.site123.me
+5f815c4af0cbc.site123.me
+608c47638515a.site123.me
+60bfb7cc01d9f.site123.me
+628701.site123.me
+89605b1j1pl81p93b3455v6m34.hop.clickbank.net
+a.pemsrv.com
+adri315sexy.eu1.badoo.com
+adult-goods-novelties.meetup.com
+adultent.meetup.com
+afe050ukk2y9apbxhyb28v2n6e.hop.clickbank.net
+afteradult.buzzsprout.com
+agirlfromkrakow.w.interia.pl
+alexandra-sexy.com.com
+alusukucy.jimdo.com
+angelicbebe.vox.com
+annalynnemccordpictureslittle.typepad.com
+annejet.pair.com
+ariynbf.libsyn.com
+ashelyden.webnode.page
+aziza.ucoz.ru
+b0.imgsrc.ru
+barbaritasexy.badoo.com
+beautiful-female-butts.photobucket.com
+beautiful-women-images.group.stumbleupon.com
+better-sexlife.meetup.com
+bettersexrevolution.typepad.com
+billgayshow.com.krj.brq.temporary.site
+binzaz.typepad.com
+bisexual-couples-married-or-otherwise.meetup.com
+bitbard.pair.com
+bleskove.centrum.cz
+booty.group.stumbleupon.com
+bourgeoise.monsite.orange.fr
+brodepute.bigcartel.com
+busty-asian.photobucket.com
+busty-brunettes.photobucket.com
+butts.photobucket.com
+camillaberry.webnode.page
+catfight.typepad.com
+cathouse.demon.co.uk
+celestesc3.vox.com
+chatonsexy.melty.fr
+cheap-girl.com.com
+coquinnnnne.badoo.com
+couples.hop.clickbank.net
+cruella.demon.co.uk
+cs1709.mojohost.com
+cuteyoungbuttbouquet.typepad.com
+dariawww.w.interia.pl
+darksnetmonster.mooo.com
+darmowefilmy.w.interia.pl
+dialer.w.interia.pl
+dirtyblondetoriwest.com.ilv.hrr.temporary.site
+domaris-sky.jimdo.com
+dottiesdelights.bigcartel.com
+dvd-x-colmax.typepad.com
+e-youtube.seesaa.net
+e0.98.fd9f.ip4.static.sl-reverse.com
+elegantmya.webnode.page
+eonnashoji.exblog.jp
+eros-phile.monsite.orange.fr
+eros.virgilio.it
+erotic-and-exotic-clothing-and-merchandize-sales.meetup.com
+erotic-bottle.android.informer.com
+erotic-dance-and-lifestyle.meetup.com
+erotic-exotic-and-fine-art-nude-modeling.meetup.com
+erotic-exotic-and-fine-art-nude-photography.meetup.com
+erotic-exotic-and-fine-art-nudes.meetup.com
+eroticat.monsite.orange.fr
+eroticawakening.libsyn.com
+femmemature.monsite.orange.fr
+fetishfuel.wikia.com
+freda4.webnode.page
+freecams.typepad.com
+frontporchswingers.podbean.com
+fulidh.neocities.org
+gangren.w.interia.pl
+gayeti.gumroad.com
+gaygaygay12.mooo.com
+gayload-13a3.kxcdn.com
+gaysmovcity.ucoz.ru
+girls.software.informer.com
+goccedipiacere.blog.tiscali.it
+goth-and-erotic-body-modification.meetup.com
+great-sex.meetup.com
+gricos.entertainment.directnic.com
+grimblegrumble.neocities.org
+h92686jy.beget.tech
+happyandnice.neocities.org
+hikawasisters.neocities.org
+hot-brunette.photobucket.com
+hot-brunettes.photobucket.com
+hottube.s3.us-east-005.backblazeb2.com
+hsnbrg689.neocities.org
+hunter1riley.hubpages.com
+ibblazin.pair.com
+idolpremium.seesaa.net
+ihateheihachimishima.neocities.org
+infaera.neocities.org
+iylituleg.jimdo.com
+izota.cafe24.com
+j96974bi.beget.tech
+judys.demon.co.uk
+k9kate.webnode.com
+k9kate.webnode.page
+kontaktmarkt.rtl.de
+lace-panties.photobucket.com
+ladiosasexy.eu1.badoo.com
+laithlin.neocities.org
+laraparis.monsite.wanadoo.fr
+lasexydance.eu1.badoo.com
+laurence-deon.monsite.wanadoo.fr
+legs-sexy-stockings.wikidot.com
+locked-room-lover.neocities.org
+lovehouse.hop.clickbank.net
+lovelydoll.seesaa.net
+madhu4ungt.webnode.com
+manifestmuscle.typepad.com
+manwhorepod.libsyn.com
+married-couples-with-bisexual-wives.meetup.com
+mateur.typepad.com
+meituxiu.home.blog
+middleandring.neocities.org
+mispriyagupta.ecwid.com
+monkeyman.neocities.org
+mwebb.hop.clickbank.net
+nishafun.godaddysites.com
+nude-figure-models.meetup.com
+oh-yeah-the-sex-thing-omg.meetup.com
+onlycelebs.typepad.com
+oplja.fm.interia.pl
+orge.nazwa.pl
+orientalheatmag.typepad.com
+panna12.w.interia.pl
+panties.typepad.com
+peeks.app.link
+peeled-grapes.neocities.org
+pepsy-sexy.eu1.badoo.com
+picpost.w.interia.pl
+pinkmafiareview.typepad.com
+plotreader.neocities.org
+prettyann9.webnode.page
+ragazzoschiava.blog.tiscali.it
+realine2.xsrv.jp
+renaravv.godaddysites.com
+rencontre.nouvelobs.com
+ronoudola.exblog.jp
+rupshikarai18.amebaownd.com
+s.pemsrv.com
+s1ckman.stumbleupon.com
+s2bluecake.gumroad.com
+saikura.gumroad.com
+sans-contraintes.perso.sfr.fr
+seduction.hop.clickbank.net
+sensual-and-erotic-education.meetup.com
+sex-magic.meetup.com
+sex-workers.meetup.com
+sexandthecidiots.libsyn.com
+sexe2point0.typepad.com
+sexoutloud.libsyn.com
+sexshopperigueux.monsite.orange.fr
+sextoys.typepad.com
+sexual-energy-workers.meetup.com
+sexual-r0ck-g0d.badoo.com
+sexy-dessous.ucoz.ru
+sexy-ladies.meetup.com
+sexy-magazine.ucoz.ru
+sexy-secretary-in-stockings.wikidot.com
+sexy-youtube.up.seesaa.net
+sexybear.stumbleupon.com
+sexyblog.typepad.com
+sexycollegegirl.stumbleupon.com
+sexyfillesmisscara.monsite.wanadoo.fr
+sexystars.monsite.wanadoo.fr
+sexyteenfinder.badoo.com
+sexyteenfinder.eu1.badoo.com
+sexyyybabes.googlepages.com
+shaved.photobucket.com
+short-cyoa.neocities.org
+shweta-housewife-bhabhi.thinkific.com
+sisi.ucoz.ru
+sitebuilder77259.dynadot.com
+slutsscholars.libsyn.com
+soji.vip.sina.com
+spicy.libero.it
+storiespics.fm.interia.pl
+stripnews.rtl.de
+suburbansexpot.blogs.com
+swimsuitmodels.smugmug.com
+tacgirls.s458.sureserver.com
+the-pleasure-of-sex.meetup.com
+thereduxzone.neocities.org
+thesupriyasingh.webnode.com
+tikpok-eu.s3.eu-central-003.backblazeb2.com
+timestop-2.neocities.org
+tsex.sapo.pt
+u5973548.ct.sendgrid.net
+unzipped.typepad.com
+valamome.neocities.org
+veqonk.w.interia.pl
+vermelerdeyiz.godaddysites.com
+verval5.tistory.com
+vibrations-for-love-romance-sex.meetup.com
+video-fun.libero.it
+violetblue.libsyn.com
+what-is-tantra-tantric-sex-and-lovemaking.meetup.com
+wp1014565.wp023.webpack.hosteurope.de
+www-hotbro-com.filesusr.com
+xboyz.w.interia.pl
+xiuren.neocities.org
+xxx.blog.20minutes.fr
+xxxxpesmanager-default-rtdb.firebaseio.com
+xznudists.exblog.jp
+ytafyhybu.exblog.jp
+yupdates.neocities.org

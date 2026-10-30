@@ -4,3 +4,9 @@
 # popularity rank from the full list. Hosts here take slots out of its fixed
 # size of 50 and count toward the two-per-brand cap. Each must already be an
 # entry of the full list, or the build fails.
+txxx.com          # a large tube site outside the top-sites ranking
+beeg.com          # a large tube site; its rank sits below smaller sites
+bongacams.com     # a large live cam site; its rank sits below smaller sites
+livejasmin.com    # a large live cam site; its rank sits below smaller sites
+cam4.com          # a large live cam site; its rank sits below smaller sites
+hqporner.com      # a large tube site; its rank sits below smaller sites

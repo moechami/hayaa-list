@@ -13,9 +13,7 @@ doppiocdn.com     # delivery for a live cam site
 flixcdn.com       # video delivery
 hath.network      # image delivery network for a gallery site
 highwebmedia.com  # delivery for a live cam site
-mjedge.net        # delivery on an adult hosting provider
 mmcdn.com         # delivery for a live cam site
-oolveris.com      # redirect domain, no page of its own
 phncdn.com        # delivery for a tube site
 sb-cd.com         # delivery for a tube site
 strpst.com        # delivery for a live cam site
@@ -26,3 +24,13 @@ xhcdn.com         # delivery for a tube site
 xhpingcdn.com     # delivery for a tube site
 xnxx-cdn.com      # delivery for a tube site
 xvideos-cdn.com   # delivery for a tube site
+
+# General or mixed platforms: they stay in the full list, but the deliberately
+# small starter list keeps to dedicated adult sites (2026-10-30).
+dlsite.com        # catalogue with a large all-ages side
+donmai.us         # image board, mixed
+janitorai.com     # chat platform, mixed
+polybuzz.ai       # chat platform, mixed
+# Second domains of a brand whose main domain is listed (the main one is
+# more recognisable).
+beeg.porn         # beeg.com is listed

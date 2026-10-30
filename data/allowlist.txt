@@ -16,13 +16,13 @@
 
 # --- Infrastructure (the host and everything under it) ---
 *.hayaa.io            # the Hayaa app and website
-*.supabase.co         # the Hayaa app's backend
-*.supabase.in         # the Hayaa app's backend
-*.revenuecat.com      # the Hayaa app's subscriptions
-*.sentry.io           # the Hayaa app's crash reports
-*.aladhan.com         # prayer times in the Hayaa app
-*.expo.dev            # the Hayaa app's update service
-*.expo.io             # the Hayaa app's update service
+*.supabase.co         # a service the Hayaa app depends on
+*.supabase.in         # a service the Hayaa app depends on
+*.revenuecat.com      # a service the Hayaa app depends on
+*.sentry.io           # a service the Hayaa app depends on
+*.aladhan.com         # a service the Hayaa app depends on
+*.expo.dev            # a service the Hayaa app depends on
+*.expo.io             # a service the Hayaa app depends on
 *.github.com          # hosts this list and its releases
 *.githubusercontent.com  # serves release downloads for this list
 *.google.com          # search, accounts, Play Store
@@ -169,7 +169,6 @@ carnaval.globo.com    # Globo carnival news
 carnaval2006.globo.com  # Globo carnival news
 catcohen.substack.com # comedian's newsletter
 garbageday.substack.com  # internet culture newsletter
-overthinkersguidetosex.substack.com  # sex education newsletter, not explicit
 futuremethod.medium.com  # general writing
 objects.reddit.com    # Reddit service host
 sisterwives.fandom.com  # TV series wiki
@@ -200,3 +199,241 @@ diaperbankofnm.weebly.com  # charity
 virginmobileringtones.weebly.com  # ringtones site
 smashbroscentral.tumblr.com  # video game fan blog
 bar.love.mail.ru      # Mail.ru mainstream dating
+
+# --- Recovery and anti-porn sites (with everything under them, 2026-10-30) ---
+# Also removed by the protected-name gate (data/protected-terms.txt); listed
+# here as well so no later change to the terms can ever block them.
+*.yourbrainonporn.com          # recovery or anti-porn site
+*.realyourbrainonporn.com      # recovery or anti-porn site
+*.pornaddictsanonymous.org     # recovery or anti-porn site
+*.spaa-recovery.org            # recovery or anti-porn site
+*.sca-recovery.org             # recovery or anti-porn site
+*.istoppornography.org         # recovery or anti-porn site
+*.stopsexaddiction.org         # recovery or anti-porn site
+*.endpornaddiction.com         # recovery or anti-porn site
+*.restoringsexualpurity.org    # recovery or anti-porn site
+*.fortworthpornrecovery.com    # recovery or anti-porn site
+*.biblicalpornrecovery.com     # recovery or anti-porn site
+*.quitpornuse.com              # recovery or anti-porn site
+*.sexaddictionhelp.com         # recovery or anti-porn site
+*.pornaddictionawareness.org   # recovery or anti-porn site
+*.sexualsobrietycoach.com      # recovery or anti-porn site
+*.nycenterforsexaddictiontreatment.com  # recovery or anti-porn site
+*.fourcirclesrecovery.com      # recovery or anti-porn site
+*.ldshopeandrecovery.com       # recovery or anti-porn site
+*.theexodusroads.com           # anti-trafficking charity
+*.feministantipornographymovement.org  # anti-pornography campaign
+*.nakedbiblepodcast.com        # Bible study podcast
+*.exodus-wallet.com            # cryptocurrency wallet
+*.exodus.email                 # email service
+*.overthinkersguidetosex.substack.com  # sex education newsletter, not explicit
+
+# --- Islamic-named sites (with everything under them, 2026-10-30) ---
+*.ahappymuslimah.tumblr.com    # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.ace-muslim.tumblr.com        # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.muslimstateof-mind.tumblr.com  # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.quranbeginners.com           # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.areejquran.com               # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.rawdatelquran.com            # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.qurank.net                   # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.profetadelislam.com          # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.islamicquiz.xyz              # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.islamic-wealth-management.net  # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.islamicexpo-sa.com           # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.libyanislamicgroup.org       # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.musliminchina.com            # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.muslimwakeup.com             # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.ukrhalal.org                 # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.imamsadr.net                 # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.talksofdeen.com              # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.asexualityandislam.com       # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.islamisohbet.chat            # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.islamsohbet.site             # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.rakibislam.com               # Islamic-named, not verified adult; reviewed by hand before re-adding
+*.allahsoft.com                # Islamic-named, not verified adult; reviewed by hand before re-adding
+
+# --- Single-source popular entries, not verified (2026-10-30) ---
+# Only one source lists them and their names show nothing adult.
+*.mjedge.net                     # single-source, not verified (with everything under it)
+*.chapturist.com                 # single-source, not verified (with everything under it)
+*.oolveris.com                   # single-source, not verified (with everything under it)
+*.lolpol3.com                    # single-source, not verified (with everything under it)
+sac.en.alibaba.com             # single-source, not verified
+everycom.en.alibaba.com        # single-source, not verified
+bestcotec.en.alibaba.com       # single-source, not verified
+wiseu.en.alibaba.com           # single-source, not verified
+jnruning.en.alibaba.com        # single-source, not verified
+
+# --- Health and news sites (2026-10-30) ---
+# Listed by The Block List Project and one other source; not adult.
+cherokeewomenshealth.com       # women's health clinic
+fairhavenhealth.com            # fertility products
+americanmednews.com            # medical news
+
+# --- False positives under the top 10,000 (subdomain review, 2026-10-30) ---
+# Found when the subdomain review was widened from the top 1,000 to the top
+# 10,000 sites (data/reviewed-top-site-subdomains.txt). That host only.
+1tian.kuaishou.com                       # short video app
+100games.hop.clickbank.net               # affiliate link for games
+proposals.hop.clickbank.net              # affiliate link, not adult by name
+4player.libsyn.com                       # podcast (games)
+activesafetystage.3m.com                 # company host
+semsiotaws.3m.com                        # company host
+carkeylocksmithessex.vmw.xea.temporary.site # locksmith
+apply.tnpscexams.in                      # government exam portal
+bisexualbrunch.buzzsprout.com            # podcast
+rss.drecom.jp                            # blog service feed host
+bluzndablood.libsyn.com                  # podcast
+challengers.libsyn.com                   # podcast
+cliff.libsyn.com                         # podcast
+dchhaddendum.libsyn.com                  # podcast
+emilymorse.libsyn.com                    # sex education podcast, not explicit
+gds.libsyn.com                           # podcast
+girlsgottaeat.libsyn.com                 # comedy podcast
+kagrox.libsyn.com                        # podcast
+kmtt.libsyn.com                          # podcast
+moonbase2.libsyn.com                     # podcast
+moviemeltdown.libsyn.com                 # film podcast
+nobilis.libsyn.com                       # podcast
+onthepage.libsyn.com                     # writing podcast
+otherpeoplepod.libsyn.com                # podcast
+psychiatricsecrets.libsyn.com            # psychiatry podcast
+seincast.libsyn.com                      # TV podcast
+sneezwort.libsyn.com                     # podcast
+spoileralertradio.libsyn.com             # film podcast
+tasteslikeburning.libsyn.com             # podcast
+theadventuringparty.libsyn.com           # games podcast
+beauty.about.com                         # beauty articles
+gaylife.about.com                        # LGBT articles
+gayteens.about.com                       # LGBT youth articles
+lesbianas.about.com                      # LGBT articles
+lesbianlife.about.com                    # LGBT articles
+lingerie.about.com                       # fashion articles
+sexo.about.com                           # sexual health articles
+sexualhealth.about.com                   # sexual health articles
+sexuality.about.com                      # sexuality articles
+substanceabuse.about.com                 # addiction articles
+teenadvice.about.com                     # advice articles
+teenfashion.about.com                    # fashion articles
+teentvmovies.about.com                   # entertainment articles
+womensbball.about.com                    # sports articles
+womenshealth.about.com                   # health articles
+youngadultbooks.about.com                # book articles
+youngadults.about.com                    # articles for young adults
+blog.libero.it                           # blog service host, shared
+blogs.dion.ne.jp                         # blog service host, shared
+bobwingate.blogs.com                     # blog
+celebprops.blogs.com                     # blog
+johndx.blogs.com                         # blog
+korea.blogs.com                          # blog
+yahoogroups.blogs.com                    # blog
+spectorisland.bigcartel.com              # shop
+cal28b041.student.utwente.nl             # university student host
+cam037104.student.utwente.nl             # university student host
+digs.demon.co.uk                         # personal site
+wessexphoto.demon.co.uk                  # photography
+celebrity.elle.com                       # magazine
+cinextravadaz.blogs.allocine.fr          # film blog
+darklily.blogs.allocine.fr               # film blog
+schizogirl.blogs.allocine.fr             # film blog
+villoumoristic.blogs.allocine.fr         # film blog
+sexthecity.leblog.allocine.fr            # film blog
+darknet.lenta.ru                         # news section
+sorokin.lenta.ru                         # news section
+x.lenta.ru                               # news section
+djj.nsw.gov.au                           # government
+missing.dc.gov                           # government
+sex-offender.vsp.virginia.gov            # government sex-offender registry
+dmsext.itu.int                           # international organisation host
+dropout.blog.tiscali.it                  # blog
+extraitdefilms2008.blogs.nouvelobs.com   # film blog
+powerpuffgirls.wikia.com                 # cartoon wiki
+frazer.rice.edu                          # university
+ghg.ecn.purdue.edu                       # university
+specialconnections.ku.edu                # university
+vsis-www.informatik.uni-hamburg.de       # university
+nagiosext.net.ic.ac.uk                   # university
+sussex.idm.oclc.org                      # library access proxy
+uniessexlib.idm.oclc.org                 # library access proxy
+shoppes77.podbean.com                    # podcast
+headbangersblog.mtv.com                  # music blog
+photos.tmz.com                           # celebrity news
+rock103.iheart.com                       # radio station
+sexperienceuk.channel4.com               # television sex education series
+sex.cosmopolitan.com                     # magazine section
+love.rambler.ru                          # mainstream dating
+start.fotostrana.ru                      # social network
+speak.index.hu                           # news site
+m.9gag.com                               # humour site
+i-54.b-xxx.bench.utorrent.com            # software service host
+i111.fastpic.org                         # image host server, shared
+jasmeet-s-school-3474.thinkific.com      # online course
+littlelandtoys.ecwid.com                 # toy shop
+lts.my.games                             # games company
+mars.he.net                              # network provider host
+newcntv.qcloudcdn.com                    # television CDN
+p.qlogo.cn                               # Tencent avatar host
+p.dmm.com                                # DMM shared service host
+stat.i3.dmm.com                          # DMM shared service host
+trac.i3.dmm.com                          # DMM shared service host
+pmclachlan.clara.net                     # personal site
+resolumentgay.blog.20minutes.fr          # newspaper blog
+sexes.blogs.liberation.fr                # newspaper blog
+resume.next.liberation.fr                # newspaper section
+rencontre.tf1.fr                         # mainstream dating
+s04.justpaste.it                         # paste service server, shared
+splwmosext.dhl.com                       # company host
+topdownloads.ucoz.ru                     # downloads site
+pliki.mp3.w.interia.pl                   # file pages
+pomocematuralne.w.interia.pl             # exam help
+celebritybabyscoop.typepad.com           # celebrity parenting news
+icepoint.typepad.com                     # blog
+nitroxflash.typepad.com                  # blog
+theninthwave.typepad.com                 # blog
+trishwilson.typepad.com                  # writer's blog
+ultranow.typepad.com                     # blog
+asexuality.meetup.com                    # community group
+bi-sexuality.meetup.com                  # community group
+bisexual-and-lesbian-femmes.meetup.com   # community group
+bisexual-and-lesbian-polyamorous.meetup.com # community group
+bisexual-and-lesbian-women.meetup.com    # community group
+bisexual-men.meetup.com                  # community group
+bisexual-moms.meetup.com                 # community group
+bisexual-singles.meetup.com              # community group
+bisexual-support.meetup.com              # support group
+bisexual-transgender.meetup.com          # community group
+bisexual-women.meetup.com                # community group
+gay-and-lesbian-friends.meetup.com       # community group
+gay-men.meetup.com                       # community group
+gaycouples.meetup.com                    # community group
+gayriders.meetup.com                     # motorcycling group
+single-gay-dads.meetup.com               # parents' group
+same-sex-parenting.meetup.com            # parents' group
+same-sex-ballroom-dancing.meetup.com     # dance group
+lesbian-gay-bisexual-transgender.meetup.com # community group
+lipstick-lesbians-bi-girls.meetup.com    # community group
+professional-black-bisexual-women-of-chicago.meetup.com # community group
+human-sexuality.meetup.com               # discussion group
+questioning-sexuality.meetup.com         # support group
+sexual-education.meetup.com              # education group
+sexuality-awareness.meetup.com           # discussion group
+sexassault.meetup.com                    # survivors' support group
+strong-is-sexy.meetup.com                # fitness group
+i1126.photobucket.com                    # image server, shared by all users
+red.photobucket.com                      # photobucket service host
+www112.netfirms.com                      # hosting server, shared
+rentalserver.fc2.com                     # hosting service
+summary.fc2.com                          # blog service page
+h.fc2.com                                # hosting service host
+blog-imgs-1.fc2.com                      # FC2 blog image server, shared by all FC2 blogs
+blog-imgs-10.fc2.com                     # FC2 blog image server, shared by all FC2 blogs
+blog-imgs-12.fc2.com                     # FC2 blog image server, shared by all FC2 blogs
+blog-imgs-21.fc2.com                     # FC2 blog image server, shared by all FC2 blogs
+blog-imgs-32.fc2.com                     # FC2 blog image server, shared by all FC2 blogs
+blog113.fc2.com                          # FC2 blog server, shared by many blogs
+blog26.fc2.com                           # FC2 blog server, shared by many blogs
+blog3.fc2.com                            # FC2 blog server, shared by many blogs
+blog5.fc2.com                            # FC2 blog server, shared by many blogs
+blog91.fc2.com                           # FC2 blog server, shared by many blogs
+blacklivesmatter.co.com                  # campaign site, not adult (its parent co.com is a public suffix, so the subdomain gate does not see it)
+jokes.pp.ru                              # jokes site, not adult (its parent pp.ru is a public suffix, so the subdomain gate does not see it)

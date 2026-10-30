@@ -35,7 +35,9 @@
 #   of scope and allowlisted.
 #   Domains with no public page (ad, CDN and redirect hosts) were kept when a
 #   source lists them as adult and their name servers or names tie them to
-#   adult services (for example mjedge.net on an adult hosting provider).
+#   adult services. Single-source ones whose names show nothing (mjedge.net,
+#   chapturist.com, oolveris.com, lolpol3.com) are allowlisted instead: not
+#   verified.
 #
 # Sorted alphabetically; no ranks are recorded here.
 123av.com
@@ -127,7 +129,6 @@ cameraprive.com
 camsoda.com
 camstreams.tv
 camwhores.tv
-chapturist.com
 chaturbate.com
 chochox.com
 cityheaven.net
@@ -307,7 +308,6 @@ literotica.com
 livecamrips.to
 livejasmin.com
 lobstertube.com
-lolpol3.com
 lootedpinay.com
 looti.net
 lpsg.com
@@ -334,7 +334,6 @@ missav.ai
 missav.live
 missav.ws
 missav123.com
-mjedge.net
 mm-cg.com
 mmcdn.com
 momon-ga.com
@@ -372,7 +371,6 @@ okxxx1.com
 ome.tv
 onlydesiporn.com
 onlyfans.com
-oolveris.com
 paheal.net
 pawchive.pw
 pcmax.jp
