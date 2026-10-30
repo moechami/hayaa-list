@@ -1,0 +1,29 @@
+{
+  "name": "hayaa-list",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Build pipeline for the Hayaa List, an open adult-site blocklist.",
+  "license": "GPL-3.0-or-later",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsx src/build.ts",
+    "update-lock": "tsx scripts/update-lock.ts",
+    "sign": "tsx scripts/sign.ts",
+    "verify": "tsx scripts/verify.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "pako": "2.1.0",
+    "punycode": "2.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/pako": "2.0.4",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

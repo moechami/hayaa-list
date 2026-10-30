@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-*/
+.cache/
+
+# Never commit a private key. Only public keys under keys/ are tracked.
+*.pem
+!keys/*.pub.pem
+*.key
