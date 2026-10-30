@@ -1,0 +1,183 @@
+name: Monthly release
+
+# Builds the Hayaa List from the latest commit of every source, runs every
+# gate and test, then (in the protected `release` environment) signs the
+# manifest and publishes a GitHub release. Any failure publishes nothing and
+# opens an issue.
+
+on:
+  schedule:
+    - cron: '17 3 1 * *'
+  workflow_dispatch:
+    inputs:
+      run:
+        description: 'Run number of the day (the NN in the serial YYYYMMDDNN), 1 to 99'
+        required: false
+        default: '1'
+
+permissions: {}
+
+concurrency:
+  group: monthly-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      serial: ${{ steps.serial.outputs.serial }}
+    env:
+      HAYAA_LIST_RUN: ${{ inputs.run || '1' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Re-pin every source to its latest commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run update-lock
+
+      - name: Type check and tests
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Build (runs every gate)
+        run: npm run build
+
+      - name: Reproducibility (a second build must give identical bytes)
+        run: |
+          npm run build -- --out dist-repro > /dev/null
+          serial=$(node -p "require('./dist/manifest.json').serial")
+          for f in "hayaa-list-$serial.bin" "hayaa-list-$serial.bin.gz" "hayaa-list-$serial.txt" starter.bin manifest.json; do
+            cmp "dist/$f" "dist-repro/$f"
+          done
+          sha256sum dist/*
+
+      - id: serial
+        name: Read the serial
+        run: echo "serial=$(node -p "require('./dist/manifest.json').serial")" >> "$GITHUB_OUTPUT"
+
+      - name: Stage the release files
+        env:
+          SERIAL: ${{ steps.serial.outputs.serial }}
+        run: |
+          mkdir release
+          cp "dist/hayaa-list-$SERIAL.bin.gz" "dist/hayaa-list-$SERIAL.txt" dist/starter.bin dist/manifest.json release/
+          cp sources.lock.json release/
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: release/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Keep the failure report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: build-failure
+          path: |
+            dist/
+            sources.lock.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: write
+    env:
+      SERIAL: ${{ needs.build.outputs.serial }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+
+      - name: The serial must be newer than the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          case "$SERIAL" in ([0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) ;; (*) echo "bad serial $SERIAL"; exit 1 ;; esac
+          latest=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2>/dev/null || true)
+          if [ -n "$latest" ] && [ "$SERIAL" -le "${latest#v}" ]; then
+            echo "serial $SERIAL is not newer than the latest release $latest"
+            exit 1
+          fi
+
+      - name: Sign the manifest
+        env:
+          LIST_SIGNING_KEY: ${{ secrets.LIST_SIGNING_KEY }}
+        run: npm run sign -- --dir release
+
+      - name: Verify every check the app runs
+        run: npm run verify -- --dir release
+
+      - name: Verify the signature with OpenSSL
+        run: |
+          key_id=$(node -p "require('./release/manifest.json').keyId")
+          openssl dgst -sha256 -verify "keys/$key_id.pub.pem" -signature release/manifest.json.sig release/manifest.json
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$SERIAL" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Hayaa List $SERIAL" \
+            --notes "Monthly build. Built from the sources.lock.json attached here; see CREDITS.md for sources and licences and docs/FORMAT.md for the file formats." \
+            --latest \
+            "release/hayaa-list-$SERIAL.bin.gz" \
+            "release/hayaa-list-$SERIAL.txt" \
+            release/starter.bin \
+            release/manifest.json \
+            release/manifest.json.sig \
+            release/sources.lock.json
+
+  report-failure:
+    needs: [build, release]
+    if: failure()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open an issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Monthly release failed ($(date -u +%Y-%m-%d))" \
+            --body "The monthly build or release failed and nothing was published. Run: $RUN_URL
+
+          If a gate failed on unreviewed top sites, the build-failure artifact holds top-hits-candidates.txt: review each one into data/reviewed-top-hits.txt or data/allowlist.txt, then run the workflow again by hand."
