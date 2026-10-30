@@ -23,6 +23,16 @@ export type PinnedSource = {
   licenseSha256: string
   homepage: string
   attribution: string
+  /**
+   * A frozen source is never re-pinned: its repository is archived, so the
+   * pinned commit is the final version. update-lock leaves it untouched.
+   */
+  frozen?: boolean
+  /**
+   * A JSON file in the same repository that states the licence of this one
+   * file, checked at every re-pin: `key` must still equal `expected`.
+   */
+  licenseJson?: { file: string; key: string; expected: string }
 }
 
 export type Lock = {
@@ -50,6 +60,11 @@ export const readLock = (path: string): Lock => {
     ids.add(s.id)
     if (!SHA1.test(s.commit) || !HEX64.test(s.sha256) || !HEX64.test(s.licenseSha256)) throw new Error(`${s.id}: commit or hash missing`)
     if (s.url !== rawUrl(s.repo, s.commit, s.path)) throw new Error(`${s.id}: url is not pinned to its commit`)
+    if (s.frozen !== undefined && typeof s.frozen !== 'boolean') throw new Error(`${s.id}: frozen must be true or false`)
+    const j = s.licenseJson
+    if (j !== undefined && (typeof j.file !== 'string' || typeof j.key !== 'string' || typeof j.expected !== 'string')) {
+      throw new Error(`${s.id}: licenseJson needs file, key and expected`)
+    }
   }
   const p = lock.publicSuffixList
   if (!SHA1.test(p.commit) || !HEX64.test(p.sha256) || p.url !== rawUrl(p.repo, p.commit, p.path)) throw new Error('publicSuffixList: not pinned')

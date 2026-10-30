@@ -41,10 +41,15 @@
       "url": "https://raw.githubusercontent.com/StevenBlack/hosts/11550239d5714d60b62be8796446ecba84a1bfb2/extensions/porn/clefspeare13/hosts",
       "sha256": "0af2d8d380778600b3865131eaf1d88f94479e96afabb0ff4d5537afb7923ca1",
       "license": "MIT",
-      "licenseFile": "extensions/porn/clefspeare13/update.json",
-      "licenseSha256": "f08e73da867387c30a26e7835a71e18c76e8193befcf2a3fd24b7bc8684ae817",
+      "licenseFile": "license.txt",
+      "licenseSha256": "8fea4b3d2ea66f1186ab6a029231441d6f3a9b4a36648d63711eb25f9eb72aa5",
       "homepage": "https://github.com/StevenBlack/hosts/tree/master/extensions/porn/clefspeare13",
-      "attribution": "Clefspeare13 pornhosts contributors; maintained in StevenBlack/hosts (Copyright Steven Black)"
+      "attribution": "Clefspeare13 pornhosts contributors; maintained in StevenBlack/hosts (Copyright Steven Black)",
+      "licenseJson": {
+        "file": "extensions/porn/clefspeare13/update.json",
+        "key": "license",
+        "expected": "MIT"
+      }
     },
     {
       "id": "stevenblack-porn-bigdargon",
@@ -56,10 +61,15 @@
       "url": "https://raw.githubusercontent.com/StevenBlack/hosts/11550239d5714d60b62be8796446ecba84a1bfb2/extensions/porn/bigdargon/hosts",
       "sha256": "c3c69ed66ed64f2927b8118bbbeee5637b201b5d3872b13840a1247d8a811e3c",
       "license": "MIT",
-      "licenseFile": "extensions/porn/bigdargon/update.json",
-      "licenseSha256": "c207136c4ace89fa9d77d7fc3576aba3053ba0d9764ed6e2b598f78ba19cd824",
+      "licenseFile": "license.txt",
+      "licenseSha256": "8fea4b3d2ea66f1186ab6a029231441d6f3a9b4a36648d63711eb25f9eb72aa5",
       "homepage": "https://github.com/bigdargon/hostsVN",
-      "attribution": "Copyright (c) BigDargon; distributed through StevenBlack/hosts (Copyright Steven Black)"
+      "attribution": "Copyright (c) BigDargon; distributed through StevenBlack/hosts (Copyright Steven Black)",
+      "licenseJson": {
+        "file": "extensions/porn/bigdargon/update.json",
+        "key": "license",
+        "expected": "MIT"
+      }
     },
     {
       "id": "hagezi-nsfw",
@@ -90,6 +100,22 @@
       "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
       "homepage": "https://oisd.nl",
       "attribution": "Stephan van Ruth (oisd)"
+    },
+    {
+      "id": "blocklistproject-porn",
+      "name": "The Block List Project: porn (frozen)",
+      "repo": "blocklistproject/Lists",
+      "branch": "main",
+      "path": "porn.txt",
+      "commit": "4f5fb53d6c5c2ed75d5378cdee12f640b0f6f2c7",
+      "url": "https://raw.githubusercontent.com/blocklistproject/Lists/4f5fb53d6c5c2ed75d5378cdee12f640b0f6f2c7/porn.txt",
+      "sha256": "425590c37e3ea624fdf646b14ba661f8b8f38391686adcf02b73f8b2d74b0db1",
+      "license": "Unlicense",
+      "licenseFile": "LICENSE",
+      "licenseSha256": "6b0382b16279f26ff69014300541967a356a666eb0b91b422f6862f6b7dad17e",
+      "homepage": "https://github.com/blocklistproject/Lists",
+      "attribution": "The Block List Project",
+      "frozen": true
     }
   ],
   "publicSuffixList": {

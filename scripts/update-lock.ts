@@ -1,22 +1,32 @@
-/* Re-pin every input in sources.lock.json to its latest version:
+/* Re-pin the inputs in sources.lock.json:
  *
- *   npm run update-lock                          # sources, Public Suffix List, latest Tranco list
+ *   npm run update-lock
  *   npm run update-lock -- --accept-license-change
+ *   npm run update-lock -- --fallback-lock previous/sources.lock.json --notes lock-notes.txt
  *
- * For each source: the newest commit on its branch, the raw URL at that
- * commit and the SHA-256 of the file. The licence file is fetched at the new
- * commit too; if its hash changed, this stops (exit 1) so a person reads the
- * new licence before it is accepted. Set GITHUB_TOKEN to avoid the GitHub
- * API's anonymous rate limit.
+ * Every source that is not frozen moves to the newest commit of its branch
+ * (raw URL at that commit, SHA-256 of the file), and so does the Public
+ * Suffix List. The Tranco list moves only to the ID set in src/config.ts.
+ *
+ * Fail-safe: a source whose repository or file is gone, or whose licence
+ * file changed, keeps its previous pin (from --fallback-lock, the lock of the
+ * previous release, when given) and a line is written to --notes; the job
+ * opens an issue from it and still releases. Set GITHUB_TOKEN to avoid the
+ * GitHub API's anonymous rate limit.
  */
 
-import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { httpGet, rawUrl, readLock, trancoUrl, writeLock, type Lock } from '../src/lock'
+import { TRANCO_LIST_ID } from '../src/config'
+import { httpGet, readLock, writeLock } from '../src/lock'
+import { updateLock, type LockNet } from '../src/lock-update'
 
 const LOCK = resolve(__dirname, '..', 'sources.lock.json')
-const sha256 = (b: Uint8Array): string => createHash('sha256').update(b).digest('hex')
+
+const arg = (name: string): string | undefined => {
+  const i = process.argv.indexOf(name)
+  return i >= 0 ? process.argv[i + 1] : undefined
+}
 
 const githubHeaders = (): Record<string, string> => {
   const h: Record<string, string> = { accept: 'application/vnd.github+json' }
@@ -24,56 +34,33 @@ const githubHeaders = (): Record<string, string> => {
   return h
 }
 
-const latestCommit = async (repo: string, branch: string): Promise<string> => {
-  const body = JSON.parse(new TextDecoder().decode(await httpGet(`https://api.github.com/repos/${repo}/commits/${branch}`, githubHeaders()))) as {
-    sha?: unknown
-  }
-  if (typeof body.sha !== 'string' || !/^[0-9a-f]{40}$/.test(body.sha)) throw new Error(`${repo}: no commit SHA in the API answer`)
-  return body.sha
+const net: LockNet = {
+  latestCommit: async (repo, branch) => {
+    const body = JSON.parse(new TextDecoder().decode(await httpGet(`https://api.github.com/repos/${repo}/commits/${branch}`, githubHeaders()))) as {
+      sha?: unknown
+    }
+    if (typeof body.sha !== 'string' || !/^[0-9a-f]{40}$/.test(body.sha)) throw new Error(`${repo}: no commit SHA in the API answer`)
+    return body.sha
+  },
+  get: (url) => httpGet(url),
 }
 
 const main = async (): Promise<void> => {
-  const acceptLicenseChange = process.argv.includes('--accept-license-change')
-  const lock = JSON.parse(readFileSync(LOCK, 'utf8')) as Lock
-  const licenseChanges: string[] = []
-
-  for (const s of lock.sources) {
-    const commit = await latestCommit(s.repo, s.branch)
-    const url = rawUrl(s.repo, commit, s.path)
-    const bytes = await httpGet(url)
-    const licenseHash = sha256(await httpGet(rawUrl(s.repo, commit, s.licenseFile)))
-    if (s.licenseSha256 && s.licenseSha256 !== licenseHash) licenseChanges.push(`${s.id}: ${s.licenseFile} changed at ${commit}`)
-    const changed = s.sha256 !== sha256(bytes)
-    Object.assign(s, { commit, url, sha256: sha256(bytes), licenseSha256: licenseHash })
-    console.log(`${s.id}: ${commit.slice(0, 12)} ${bytes.length} bytes${changed ? ' (new content)' : ''}`)
-  }
-
-  const p = lock.publicSuffixList
-  p.commit = await latestCommit(p.repo, p.branch)
-  p.url = rawUrl(p.repo, p.commit, p.path)
-  p.sha256 = sha256(await httpGet(p.url))
-  console.log(`public suffix list: ${p.commit.slice(0, 12)}`)
-
-  const latest = JSON.parse(new TextDecoder().decode(await httpGet('https://tranco-list.eu/api/lists/date/latest'))) as {
-    list_id?: unknown
-    available?: unknown
-  }
-  if (typeof latest.list_id !== 'string' || latest.available !== true) throw new Error('tranco: no available latest list')
-  const t = lock.tranco
-  t.listId = latest.list_id
-  t.url = trancoUrl(t.listId, t.top)
-  t.sha256 = sha256(await httpGet(t.url))
-  console.log(`tranco: list ${t.listId} (top ${t.top})`)
-
-  if (licenseChanges.length > 0 && !acceptLicenseChange) {
-    console.error('\nLicence file changed; read it, update CREDITS.md, then re-run with --accept-license-change:')
-    for (const c of licenseChanges) console.error(`  ${c}`)
-    process.exitCode = 1
-    return
-  }
-  writeLock(LOCK, lock)
+  const fallbackPath = arg('--fallback-lock')
+  const notesPath = arg('--notes')
+  const fallback = fallbackPath && existsSync(fallbackPath) ? readLock(resolve(fallbackPath)) : null
+  const current = readLock(LOCK)
+  const result = await updateLock(current, net, {
+    acceptLicenseChange: process.argv.includes('--accept-license-change'),
+    fallback,
+    trancoListId: TRANCO_LIST_ID,
+  })
+  for (const line of result.log) console.log(line)
+  writeLock(LOCK, result.lock)
   readLock(LOCK) // the written lock must pass the same checks the build applies
-  console.log('\nsources.lock.json updated')
+  if (notesPath) writeFileSync(resolve(notesPath), result.notes.map((n) => `- ${n}`).join('\n') + (result.notes.length ? '\n' : ''))
+  for (const n of result.notes) console.warn(`NOTE: ${n}`)
+  console.log(`\nsources.lock.json updated${result.notes.length ? ` (${result.notes.length} note(s) for review)` : ''}`)
 }
 
 main().catch((e: unknown) => {
