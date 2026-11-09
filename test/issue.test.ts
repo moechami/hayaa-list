@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Hayaa LLC. Additional terms under GPL-3.0 section 7: see README.md.
 //
 // Text from upstream that reaches a GitHub issue: safe characters only,
 // capped, inside a code fence it cannot break out of.

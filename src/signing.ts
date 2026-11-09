@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Hayaa LLC. Additional terms under GPL-3.0 section 7: see README.md.
 //
 // Release signatures: ECDSA on P-256 over SHA-256, DER-encoded, computed over
 // the exact bytes of a file. For manifest.json this is what the app verifies

@@ -10,9 +10,10 @@ monthly build trusts: the previous host counts, held-back entries and
 source pins). The next build checks all three against the keys here before
 it uses anything from the previous release.
 
-`k1.pub.pem` is not here yet: it is added when the repository is set up,
-from a key pair made as below. Until then the release job cannot verify a
-signature and publishes nothing.
+`k1.pub.pem` was made on 2026-11-09, as below. Its fingerprint (SHA-256 of
+the DER public key) is
+`d2de9f1da2747a343de2ce1f7b2cb0dcfd304eb2a59e1b1d886bd993ddaaa6c7`; check it
+wherever the key is copied.
 
 The private key is never stored in this repository, nor on the build
 machine's disk. Only the workflow's `sign` job sees it: that job runs
@@ -56,7 +57,9 @@ unless given `--force`.
    - Required reviewers: at least one maintainer, so every release is
      approved by a person.
    - Prevent self-review: on, so the person who started a run cannot also
-     approve it.
+     approve it, once the repository has a second maintainer. While it has
+     one, leave it off, or no run could ever be approved (a scheduled run
+     counts as started by whoever last changed the workflow).
    - Allow administrators to bypass: off.
    - Environment secret `LIST_SIGNING_KEY`: the full contents of
      `k1.key.pem`.

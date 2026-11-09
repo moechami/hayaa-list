@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Build pipeline for the Hayaa List, an open adult-site blocklist.",
+  "author": "Hayaa LLC (https://hayaa.io)",
   "license": "GPL-3.0-or-later",
   "type": "commonjs",
   "engines": {

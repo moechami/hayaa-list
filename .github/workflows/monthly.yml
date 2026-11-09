@@ -165,8 +165,8 @@ jobs:
   sign:
     needs: build
     # Only ever from main, and only through the protected environment (see
-    # keys/README.md: deployments limited to main, a required reviewer who is
-    # not the person who started the run, the key as an environment secret).
+    # keys/README.md: deployments limited to main, a required reviewer, the
+    # key as an environment secret).
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -280,7 +280,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "Hayaa List $SERIAL" \
-            --notes "Monthly build. Built from the sources.lock.json attached here. The list data is licensed under the GNU GPL version 3 only (LICENSE); sources and attributions are in CREDITS.md, file formats in docs/FORMAT.md. Entries held back for review: $held (see build-info.json). Gate overrides used for this release: allow_shrink $ALLOW_SHRINK, allow_growth $ALLOW_GROWTH." \
+            --notes "The Hayaa List, Copyright (C) 2026 Hayaa LLC (https://hayaa.io). Monthly build. Built from the sources.lock.json attached here. The list data is licensed under the GNU GPL version 3 only (LICENSE); sources and attributions are in CREDITS.md, file formats in docs/FORMAT.md. Entries held back for review: $held (see build-info.json). Gate overrides used for this release: allow_shrink $ALLOW_SHRINK, allow_growth $ALLOW_GROWTH." \
             --latest \
             "release/hayaa-list-$SERIAL.bin.gz" \
             "release/hayaa-list-$SERIAL.txt" \

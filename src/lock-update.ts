@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Hayaa LLC. Additional terms under GPL-3.0 section 7: see README.md.
 //
 // Re-pinning sources.lock.json, without I/O of its own (the network is passed
 // in, so the tests run it offline). Fail-safe by design: one source that

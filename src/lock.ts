@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Hayaa LLC. Additional terms under GPL-3.0 section 7: see README.md.
 //
 // sources.lock.json: every input of the build, pinned. Sources and the Public
 // Suffix List are pinned to an immutable commit (raw.githubusercontent.com

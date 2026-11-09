@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Hayaa LLC. Additional terms under GPL-3.0 section 7: see README.md.
 //
 // The monthly gates added on top of the basic build: review gates that hold
 // back new unreviewed popular entries (and fail on a burst of them), shrink

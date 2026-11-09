@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Hayaa LLC. Additional terms under GPL-3.0 section 7: see README.md.
 //
 // Checks a release folder the way the Hayaa app checks a download, in the
 // same order: signature over the exact manifest bytes (before any JSON is

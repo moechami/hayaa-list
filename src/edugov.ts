@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Hayaa LLC. Additional terms under GPL-3.0 section 7: see README.md.
 //
 // Education and government hosts. A school, university, ministry or health
 // service is almost never an adult site, and blocking one in an app whose

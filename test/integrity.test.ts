@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Hayaa LLC. Additional terms under GPL-3.0 section 7: see README.md.
 //
 // Bounded work per lookup and full validation, over hand-built files laid
 // out exactly as given (the writer never produces them). The same cases run

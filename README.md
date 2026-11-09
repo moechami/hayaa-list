@@ -30,6 +30,39 @@ Two lists are published:
   (at your option) any later version (`GPL-3.0-or-later`), as `package.json`
   states.
 
+### Copyright
+
+The Hayaa List, Copyright (C) 2026 Hayaa LLC (https://hayaa.io).
+
+Hayaa LLC holds the copyright in its own work in this repository: the
+code, the hand-kept files in `data/` (its review files included), and the
+selection, filtering and arrangement of the combined list. The sources keep
+their own copyrights, named in [CREDITS.md](CREDITS.md).
+
+### Additional terms (GPL-3.0 section 7)
+
+For the material Hayaa LLC adds to this work (and so for the list as a
+whole, which contains it), these terms are added to the GNU General Public
+License, as its section 7 allows. They do not change the terms of the
+sources' own material.
+
+- **Attribution** (section 7(b)): every copy and every modified version
+  must keep the notice "The Hayaa List, Copyright (C) 2026 Hayaa LLC
+  (https://hayaa.io)" as a notice of origin, and the attributions in
+  CREDITS.md. A modified version may give it as "Based on the Hayaa List,
+  Copyright (C) 2026 Hayaa LLC (https://hayaa.io)".
+- **Marking** (section 7(c)): a modified version must be marked as changed,
+  including by a name other than "The Hayaa List", and must not be
+  presented as the original.
+- **Publicity** (section 7(d)): the names "Hayaa" and "Hayaa LLC" may not
+  be used to say or suggest that Hayaa LLC publishes, endorses or supports
+  a modified version.
+- **Trademarks** (section 7(e)): no right is granted under trademark law to
+  use the names "Hayaa" or "The Hayaa List", or Hayaa's logos.
+
+The same terms are in CREDITS.md, which every release carries, and each
+code file points here.
+
 **Modification notice** (GPL-3.0 section 5(a)): this list merges,
 normalises and filters the source lists named below; each release's date is
 its serial (`YYYYMMDDNN`).
@@ -309,9 +342,9 @@ refuses to run without these.
 1. **Signing key and the `release` environment**: follow the checklist in
    [keys/README.md](keys/README.md) (key made with a private umask, its
    fingerprint recorded, `keys/k1.pub.pem` committed; the environment limited
-   to `main`, with a required reviewer, self-review prevented and no
-   administrator bypass; actions required to be pinned to a full commit SHA;
-   immutable releases turned on).
+   to `main`, with a required reviewer (self-review prevented once there is
+   a second maintainer) and no administrator bypass; actions required to be
+   pinned to a full commit SHA; immutable releases turned on).
 2. **Actions** (Settings, Actions, General): Actions enabled; workflow
    permissions may stay read-only, since each job asks for what it needs.
 3. **Issues** enabled, with the labels `wrongly listed` and `missing site`.

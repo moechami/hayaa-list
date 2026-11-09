@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Hayaa LLC. Additional terms under GPL-3.0 section 7: see README.md.
 //
 // Invariants of the repository itself: the release workflow's safety
 // properties, the reporting templates, licence statements, and the reviewed
@@ -203,6 +204,36 @@ describe('reporting and licences', () => {
     assert.equal(JSON.parse(read('package.json')).license, 'GPL-3.0-or-later')
     for (const doc of ['README.md', 'CREDITS.md']) assert.match(read(doc), /GPL-3\.0-only/, doc)
     assert.match(read('README.md'), /GPL-3\.0-or-later/)
+  })
+
+  test("Hayaa LLC's copyright and the section 7 terms travel with every release", () => {
+    const notice = 'The Hayaa List, Copyright (C) 2026 Hayaa LLC (https://hayaa.io)'
+    // CREDITS.md is attached to every release, so it carries the full terms itself,
+    // word for word the same as the README's.
+    const terms = (doc: string): string => {
+      const text = read(doc).replace(/\s+/g, ' ')
+      const start = text.indexOf('For the material Hayaa LLC adds')
+      const end = text.indexOf("or Hayaa's logos.", start)
+      assert.ok(start >= 0 && end > start, `${doc} has the section 7 terms`)
+      return text.slice(start, end)
+    }
+    assert.equal(terms('CREDITS.md'), terms('README.md'))
+    for (const doc of ['README.md', 'CREDITS.md']) {
+      assert.ok(read(doc).replace(/\s+/g, ' ').includes(notice), doc)
+      for (const s of ['7(b)', '7(c)', '7(d)', '7(e)']) assert.ok(terms(doc).includes(s), `${doc} ${s}`)
+    }
+    assert.ok(read('.github/workflows/monthly.yml').includes(`--notes "${notice}.`))
+    assert.equal(JSON.parse(read('package.json')).author, 'Hayaa LLC (https://hayaa.io)')
+  })
+
+  test('every code file names Hayaa LLC and points to the section 7 terms', () => {
+    const pointer = '// Copyright (C) 2026 Hayaa LLC. Additional terms under GPL-3.0 section 7: see README.md.\n'
+    const files = spawnSync('git', ['ls-files', 'src', 'scripts', 'test'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\n').filter((f) => f.endsWith('.ts'))
+    assert.ok(files.length > 30)
+    // src/format.ts is pinned byte for byte to the app's copy, so it carries no header.
+    for (const f of files.filter((f) => f !== 'src/format.ts')) {
+      assert.ok(read(f).startsWith('// SPDX-License-Identifier: GPL-3.0-or-later\n' + pointer), f)
+    }
   })
 
   test('the README says the starter list is static and the release is attempted monthly', () => {

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Hayaa LLC. Additional terms under GPL-3.0 section 7: see README.md.
 //
 // Release signing (the manifest, build-info.json and the lock), the local
 // signing guard, and the full release check. Keys are generated per run

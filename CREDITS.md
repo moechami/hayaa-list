@@ -13,6 +13,34 @@ text without an "or later" grant, so the combined list cannot offer later
 versions. The code of this repository is separately licensed
 `GPL-3.0-or-later` (see README.md).
 
+## Copyright
+
+The Hayaa List, Copyright (C) 2026 Hayaa LLC (https://hayaa.io): the code,
+the hand-kept files in `data/` (its review files included), and the selection,
+filtering and arrangement of the combined list. Each source below keeps its
+own copyright.
+
+## Additional terms (GPL-3.0 section 7)
+
+For the material Hayaa LLC adds to this work (and so for the list as a
+whole, which contains it), these terms are added to the GNU General Public
+License, as its section 7 allows. They do not change the terms of the
+sources' own material.
+
+- **Attribution** (section 7(b)): every copy and every modified version
+  must keep the notice "The Hayaa List, Copyright (C) 2026 Hayaa LLC
+  (https://hayaa.io)" as a notice of origin, and the attributions in
+  CREDITS.md. A modified version may give it as "Based on the Hayaa List,
+  Copyright (C) 2026 Hayaa LLC (https://hayaa.io)".
+- **Marking** (section 7(c)): a modified version must be marked as changed,
+  including by a name other than "The Hayaa List", and must not be
+  presented as the original.
+- **Publicity** (section 7(d)): the names "Hayaa" and "Hayaa LLC" may not
+  be used to say or suggest that Hayaa LLC publishes, endorses or supports
+  a modified version.
+- **Trademarks** (section 7(e)): no right is granted under trademark law to
+  use the names "Hayaa" or "The Hayaa List", or Hayaa's logos.
+
 **Modification notice** (GPL-3.0 section 5(a)): this list merges,
 normalises and filters the sources below (public suffixes, protected names,
 false keyword matches, the allowlist and the review gates are described in
