@@ -10,11 +10,12 @@
  * job, which runs it) re-pins sources.lock.json to the ID given here, and the
  * build refuses a lock that names another ID.
  *
- * PYK6J: created 2026-10-29 from the 30 days 2026-09-30 to 2026-10-29,
- * default providers. TODO: replace with a custom list that leaves out
- * Cloudflare Radar (CC BY-NC 4.0) once it is created; see CREDITS.md.
+ * PY2VJ: a custom list created 2026-11-09 from the 30 days 2026-10-10 to
+ * 2026-11-08, providers CrUX, Majestic and Cisco Umbrella, Dowdall,
+ * pay-level domains only. It leaves out Cloudflare Radar (CC BY-NC 4.0) and
+ * Farsight (not offered for custom lists); see CREDITS.md.
  */
-export const TRANCO_LIST_ID = 'PYK6J'
+export const TRANCO_LIST_ID = 'PY2VJ'
 
 /** How many Tranco ranks the top-sites review gate covers. */
 export const TRANCO_TOP = 10_000

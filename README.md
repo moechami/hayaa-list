@@ -349,9 +349,9 @@ refuses to run without these.
    permissions may stay read-only, since each job asks for what it needs.
 3. **Issues** enabled, with the labels `wrongly listed` and `missing site`.
 4. **Tranco list.** The build uses the list ID in `src/config.ts`
-   (`TRANCO_LIST_ID`). TODO: create a custom Tranco list that leaves out
-   Cloudflare Radar (CC BY-NC 4.0), then change that one line; the next run
-   re-pins it. See CREDITS.md.
+   (`TRANCO_LIST_ID`), a custom Tranco list that leaves out Cloudflare
+   Radar (CC BY-NC 4.0). To move to a newer one, create it the same way and
+   change that one line; the next run re-pins it. See CREDITS.md.
 
 ## Repository layout
 

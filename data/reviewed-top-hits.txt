@@ -39,17 +39,37 @@
 #   chapturist.com, oolveris.com, lolpol3.com) are allowlisted instead: not
 #   verified.
 #
+# Second review (2026-11-09), when the top-sites list moved to the custom
+# Tranco list PY2VJ (CrUX, Majestic and Umbrella, without Cloudflare Radar):
+# 104 popular entries and 1,132 subdomains of popular platforms were new.
+# Most adult sites did not load from the review machine, so the rule above
+# was applied by name and by source count: kept when two or more sources
+# list a site as adult, or one does and the name ties it to adult content
+# (also in Thai, Indonesian, Hindi, Arabic, Korean and Chinese slang);
+# held back (data/pending-review.txt) when one source lists it and the name
+# shows nothing. General comic and webtoon readers, image hosts and free
+# hosting roots are allowlisted, as before (two readers whose mirrors are
+# listed as adult are held back instead). adultfriendfinder.com is kept
+# as a hook-up service, like adam4adam.com. The maintainer's calls the same
+# day: inkbunny.net (an art site where most work is explicit) and 2chan.net
+# (an image board with large explicit boards, like 4chan.org) kept;
+# melonbooks.co.jp (a doujin shop with general and R18 catalogues) and
+# chomikuj.pl (a file-sharing site with much adult material) also kept, a
+# stricter call than the rule above for mixed shops and general platforms.
+#
 # Sorted alphabetically; no ranks are recorded here.
 123av.com
 18comic.vip
 1porn.tv
 24videos.space
 24xxx.men
+2chan.net
 3hentai.net
 4chan.org
 51cg1.com
 7mmtv.sx
 8888.porn
+91cg1.com
 91porn.com
 91porna.com
 91porny.com
@@ -57,10 +77,13 @@ absoluporn.com
 abxxx.com
 adam4adam.com
 adamieva.info
+adult-machiko.com
+adultfriendfinder.com
 adultfuns.club
 adultwork.com
 ahacdn.me
 ahcdn.com
+alastonsuomi.com
 allhen.online
 allporncomic.com
 allthefallen.moe
@@ -91,6 +114,7 @@ av-th.io
 av19t.com
 avdbs.com
 avizoone.com
+avj-th.com
 avjb.com
 avkuy.com
 avple.tv
@@ -105,12 +129,15 @@ beastiality.tv
 beeg.com
 beeg.porn
 besthindiporn.com
+bestialitysextaboo.net
 bestjavporn.com
 bfvideo.site
 bhojpurisex.site
+blowjobs.pro
 bluesystem.me
 bluevideos.net
 bodgirls.com
+bokephot.net
 bokepi.com
 bokeplot.com
 bongacams.com
@@ -120,6 +147,7 @@ boy18tube.com
 boyfriend.tv
 boyfriendtv.com
 braiiz.com
+bramasacscadi.com
 bucetaflix.com
 bustybus.com
 buumal.com
@@ -131,6 +159,7 @@ camstreams.tv
 camwhores.tv
 chaturbate.com
 chochox.com
+chomikuj.pl
 cityheaven.net
 classificadosx.net
 cnnamador.com
@@ -142,6 +171,7 @@ darkero.com
 darknaija.com
 darknessporn.com
 datezone.com
+desibf.com
 desikahani2.net
 desikamababa.com
 desitales2.com
@@ -163,6 +193,7 @@ dropmms.com
 dto.jp
 e-hentai.org
 e621.net
+egy69.com
 egysex6.com
 elitebabes.com
 emochi.com
@@ -183,6 +214,7 @@ exhentai.org
 f95zone.to
 fabguys.com
 fabswingers.com
+famosas.lat
 fansly.com
 fantia.jp
 fapello.com
@@ -194,12 +226,14 @@ fikfap.com
 filmexxx.live
 flirtify.com
 flixcdn.com
+fngml.com
 fpo.xxx
 freeporno.xxx
 freepornvideo.sex
 freepornvideos.xxx
 freesexkahani.com
 freevideo.cz
+freshsexvideos.com
 fsiblogxx.com
 fuckmoral.com
 fujoho.jp
@@ -223,6 +257,7 @@ hanime1.me
 happy-porn.com
 hath.network
 hdhindisex.com
+hdmaal.name
 hdporncomics.com
 hdtube.porn
 hello.porn
@@ -239,17 +274,21 @@ hentaimama.io
 hentairead.com
 hentaivietsub.com
 hentaivox.com
+hentaiz.bot
 heovl.im
 highwebmedia.com
+hindixxxsite.com
 hitomi.la
 hornyleak.tv
 hot-sex-tube.com
 hotebonytube.com
+hotindianvids.com
 hotpic.cc
 hotpornphotos.com
 hotxv.com
 hqporn.xxx
 hqporner.com
+huangguoai.com
 huyamba.name
 hxhani.com
 idolfap.com
@@ -257,16 +296,21 @@ iha.ee
 ijavhd.com
 imagefap.com
 imhentai.xxx
+indiamobiletube.com
 indianbfvideos.com
 indiansexstories3.com
 indoav.com
+inkbunny.net
 inxxx.com
 iporntv.net
 isitmaal.com
 ixxx.com
 jable.tv
+jalf.com
 janitorai.com
 jav.guru
+jav.sb
+jav037.com
 javbus.com
 javdb.com
 javdock.com
@@ -280,14 +324,19 @@ javsek.net
 javsub.blog
 javtiful.com
 javwow.com
+javwow.net
 javxxx.me
 jennymovies.com
 jjgirls.com
 joporn.name
+josporn.club
 jovencitas.gratis
 joyclub.de
 justporn.com
+kaldagan.com
 kamababa1.com
+kamababa10.com
+kamababa12.com
 kamareels2.com
 kanesex.com
 katorsex.me
@@ -299,6 +348,7 @@ koselarab.com
 krx18.com
 ladies.de
 ladyxena.com
+lalamasa.mobi
 leakgallery.com
 leaktube.net
 leolist.cc
@@ -310,19 +360,24 @@ livejasmin.com
 lobstertube.com
 lootedpinay.com
 looti.net
+lordbokep.com
 lpsg.com
 luticlip.com
 luxuretv.com
+m-mbf.com
 machotube.tv
 manga18.club
 manhwaread.com
 massagerepublic.com
+mastiraja.io
 mat6tube.com
 maturetube.com
 maynoe.com
 megaescort.info
 megapersonals.eu
+melonbooks.co.jp
 melonstube.com
+mencretmesum.store
 meslibertines.com
 metaporn.com
 mgstage.com
@@ -336,12 +391,15 @@ missav.ws
 missav123.com
 mm-cg.com
 mmcdn.com
+mmporns.com
 momon-ga.com
 momoniji.com
 momvids.com
 monsnode.com
 mrds66.com
 multporn.net
+mydesi10.com
+mydesi2.fit
 mydesi2.net
 myhentaicomics.com
 myhentaigallery.com
@@ -350,6 +408,7 @@ mym.fans
 myreadingmanga.info
 mzansi247.com
 mzansipornvideos.com
+naijafap.com
 naijared.com
 nan-net.com
 napiszex.com
@@ -371,6 +430,7 @@ okxxx1.com
 ome.tv
 onlydesiporn.com
 onlyfans.com
+p4455.com
 paheal.net
 pawchive.pw
 pcmax.jp
@@ -379,6 +439,7 @@ phimsexsuong3x.net
 phncdn.com
 photoacompanhantes.com
 pimpbunny.com
+pinayflix.uk
 pixai.art
 pixhost.to
 playvids.com
@@ -387,9 +448,11 @@ poringa.net
 porn-comic.com
 porn300.com
 porndos.com
+porndroids.com
 porngameshub.com
 pornhat.com
 pornhat.one
+pornhindisex.com
 pornhub.com
 pornhub.org
 porno-zona.com
@@ -412,6 +475,7 @@ pornzog.com
 punishworld.com
 pussyboy.net
 pussyspace.com
+pussyspace.net
 qfilm.tv
 qorno.com
 quartier-rouge.be
@@ -429,6 +493,8 @@ rexporn.io
 rexporn.sex
 romeo.com
 rosszlanyok.hu
+rou.video
+ruhub.me
 rule34.gg
 rule34.us
 rule34.xxx
@@ -443,12 +509,17 @@ serviporno.com
 sex-studentki.live
 sex-studentki.studio
 sex-studentki.team
+sex-studentki.vodka
+sex-zbzoob.com
 sex.com
+sex1x.to
 sex6x.com
 sexalarab.com
+sexalarab.net
 sexbebin.com
 sexetag.com
 sexiha.cam
+sexiveo.com
 sexkomix2.com
 sexkomix22.com
 sexlog.com
@@ -463,7 +534,10 @@ sexybluefilm.com
 sexyvideoindian.com
 shahvani.com
 shalove.net
+shareanynudes.com
+shrmha.pro
 simpcity.cr
+singeporno.com
 skipthegames.com
 skokka.com
 sniffies.com
@@ -519,6 +593,8 @@ txnhh.com
 ukdevilz.com
 uncenz.com
 upskirt.tv
+usersporn.com
+uzporno.website
 vcmdiawe.com
 vercomicsporno.com
 videocelebs.net
@@ -526,22 +602,30 @@ videochatmix.com
 videosdemadurasx.com
 videosxgays.com
 videoxx.com
+viet69z.to
+viralgf.wtf
 viralkand.com
 viralxxxporn.com
+vlxx.phd
 vnsextop1.com
 voglioporno.com
 vps-vids.com
+w4nkr.com
+warpav.net
 watchhentai.net
 wav.tv
 wnacg.com
 wonporn.com
 wowxxx.to
+x-alarab.com
 x-fetish.tube
 x-video.tube
 x-x-x.tube
+x3arabi.com
 xahani.com
 xalabahia.com
 xanimu.com
+xarxxx.com
 xasiat.com
 xcadr.online
 xdate.ch
@@ -577,14 +661,18 @@ xhwebsite.com
 xhwide.com
 xhzone.live
 xleche.com
+xmegadrive.com
 xn----ztbcbceder.net
 xn--18-3qi3cza3b2a2dxc4b9a.com
 xn--42cf7cgd7gxbd4m7c.cc
 xn--72caa3cygoc0d9c.com
+xn--88-lqix0ea5a7kua2b8lc3gd.com
+xn--l3caaaa1kg4f.net
 xn--mgbkt9eckr.net
 xnalgas.com
 xnhau.city
 xnxtt.com
+xnxx-aflam.com
 xnxx-arabic.com
 xnxx-cdn.com
 xnxx-ru.com
@@ -598,6 +686,7 @@ xnxxvideos.me
 xorgasmo.com
 xossipy.com
 xpaja.net
+xseenx.com
 xv-ru.com
 xvideo-jp.com
 xvideo.vlog.br
@@ -605,6 +694,7 @@ xvideos-ar.com
 xvideos-cdn.com
 xvideos.com
 xvideos.es
+xvideos.tv.br
 xvideos2.com
 xvideos3.com
 xvideos4.com
@@ -626,7 +716,11 @@ xxxpostpic.org
 xxxshame.com
 xxxtophd.com
 xxxvideo.link
+xxxvideo.sex
+xxxvideosex.net
 xxxvideosind.com
+xxxza.com
+yadongkorea03.tv
 yaoimangaonline.com
 yaoiscan.com
 yesporn.vip
@@ -636,6 +730,7 @@ youporn.com
 zaiim.com
 zbporn.com
 zbporn.tv
+zebawe.com
 zebawy.com
 zmaal.net
 zmero.com

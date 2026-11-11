@@ -250,3 +250,56 @@ xxxxpesmanager-default-rtdb.firebaseio.com
 xznudists.exblog.jp
 ytafyhybu.exblog.jp
 yupdates.neocities.org
+
+# --- Popular sites left undecided (2026-11-09, Tranco PY2VJ) ---
+avanture.net           # single source, did not load, name shows nothing
+fhway.live             # single source, did not load, name shows nothing
+ru.actor               # single source, did not load, name shows nothing
+topgai.net             # single source, did not load, name unclear
+xprimehub.pics         # single source, did not load, name unclear
+sexylib.com            # single source (keyword-built list), did not load
+bodycontact.com        # single source (keyword-built list), did not load
+xhzone.blog            # single source, did not load, name unclear
+xhtv.life              # single source, did not load, name unclear
+
+# --- Platforms whose names were not mostly explicit (2026-11-09, Tranco PY2VJ) ---
+# Their pages with explicit names are reviewed one by one in
+# data/reviewed-top-site-subdomains.txt; every other listed page waits here.
+*.cjb.net                  # free redirect names; about 60 to 70% explicit by name, many warez, music, anime and fan pages
+*.freeserve.co.uk          # old personal pages; most names ordinary or unclear
+*.freeservers.com          # personal sites; most names ordinary or unclear
+*.posterous.com            # blogs named after people; names unclear
+*.skyrock.com              # French teen blog platform; many "sexy-girl" names are personal blogs, not adult sites
+*.e-monsite.com            # personal sites; many names are massage, fashion or dating, unclear
+*.blog.com                 # blogs; many random-letter spam names, unclear
+*.freehostia.com           # free hosting; random-letter names unclear
+*.blog.jp                  # livedoor blogs; Japanese names partly unclear
+*.company.site             # shop sites; personal names unclear
+*.at.ua                    # personal sites; short names unclear
+*.ucoz.com                 # personal sites; names unclear
+*.fortunecity.com          # personal pages; names unclear
+*.de.tl                    # personal sites; names unclear
+*.podomatic.com            # podcasts; names unclear (one may be a personal story)
+*.pbworks.com              # wikis; spam-looking names, unclear
+*.pagesperso-orange.fr     # personal pages; names unclear
+*.xrea.com                 # personal sites; names unclear
+*.proboards.com            # forums; names unclear
+*.podigee.io               # podcasts; names unclear
+*.bravesites.com           # personal sites; names unclear
+*.bloglovin.com            # blog reader; a category page, not a site of its own
+*.unblog.fr                # French blogs; about 40% of the listed names are explicit
+*.online.fr                # free personal pages; about 20% of the listed names are explicit
+*.de.vu                    # free short names; about 20% of the listed names are explicit
+*.fanbox.cc                # creator pages; names unclear
+*.radikal.ru               # image host pages; names unclear
+*.jalbum.net               # photo albums; names unclear
+
+# --- Single hosts left undecided (2026-11-09, Tranco PY2VJ) ---
+dualeotruyenlr.com         # comic reader; two sources list its mirrors as adult, so not verified either way
+toonkor0.org               # webtoon reader; its mirrors stay listed, so not verified either way
+aindianbrv.blogs.psychologies.com  # single source, name shows nothing
+install0hv.blogs.psychologies.com  # single source, name shows nothing
+thecheaiuj.blogs.psychologies.com  # single source, name shows nothing
+verikamz.blogs.psychologies.com    # single source, name shows nothing
+fuckingfunnylife.unblog.fr # name may be humour
+masexualite.online.fr      # name may be sex education

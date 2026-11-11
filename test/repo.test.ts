@@ -327,13 +327,26 @@ describe('reviewed decisions in data/', () => {
       '*.tumblr.com', '*.weebly.com', '*.wix.com', '*.wordpress.com',
     ])
     // canalblog and narod.ru sampled weak: pending, with their explicit pages reviewed one by one.
+    // The hosting platforms held back in the 2026-11-09 review follow the same rule.
+    const explicitName = /porn|xxx|sex|hentai|nsfw|milf|fuck|puss|dick|cock|tits|boob|escort|erot|salope|cochonne|baise|plan-?cul|godemich|masturb|branl|orgasm|sodomi|bdsm|fetis|fetich|domina|exhib|voyeur|libertin|echangis|candaul|beurette|shemale|tranny|gangbang|bukkake|nympho|soumise|esclave|cuckold|swing|creampie|blowjob|fellation|zoophil|incest|nude|naked|preteen|lolita|beastual|rape-|wife/
     const pendingLines = lines('data/pending-review.txt')
     for (const p of ['*.canalblog.com', '*.narod.ru']) assert.ok(pendingLines.includes(p), p)
     const canal = [...subs].filter((s) => s.endsWith('.canalblog.com') && !s.startsWith('*.'))
     const narod = [...subs].filter((s) => s.endsWith('.narod.ru') && !s.startsWith('*.'))
     assert.ok(canal.length > 900 && narod.length > 50, `${canal.length} ${narod.length}`)
-    for (const h of [...canal, ...narod]) assert.match(h, /porn|xxx|sex|hentai|nsfw|milf|fuck|puss|dick|cock|tits|boob|escort|erot|salope|cochonne|baise|plan-?cul|godemich|masturb|branl|orgasm|sodomi|bdsm|fetis|fetich|domina|exhib|voyeur|libertin|echangis|candaul|beurette|shemale|tranny|gangbang|bukkake|nympho|soumise|esclave|cuckold|swing|creampie|blowjob|fellation|zoophil|incest|nude|naked|preteen|lolita|beastual|rape-|wife/, h)
+    for (const h of [...canal, ...narod]) assert.match(h, explicitName, h)
     for (const h of ['homosexuel.canalblog.com', 'lespetitsoiseaux.canalblog.com', 'dsetsalopette.canalblog.com', 'conseilsexologie.canalblog.com', 'sexist.canalblog.com']) assert.ok(!subs.has(h), h)
+    for (const root of ['unblog.fr', 'online.fr', 'de.vu', 'cjb.net']) {
+      assert.ok(pendingLines.includes(`*.${root}`), root)
+      const pages = [...subs].filter((s) => s.endsWith(`.${root}`) && !s.startsWith('*.'))
+      assert.ok(pages.length > 10, `${root} ${pages.length}`)
+      // A name whose only explicit word is "sexy" stays pending: a weak signal on personal pages.
+      for (const h of pages) assert.match(h.slice(0, -root.length - 1).replace(/sexy/g, ''), explicitName, h)
+    }
+    for (const h of ['lespetitstracasdelucile.unblog.fr', 'lesincestes.unblog.fr', 'sexpornandcriticisms.unblog.fr', 'masexualite.online.fr', 'bisexuales.cjb.net', 'ladysexy0000.unblog.fr',
+      'sexetcompagnie.unblog.fr', 'korigancock1.unblog.fr', 'fuckingfunnylife.unblog.fr', 'pornication.cjb.net']) {
+      assert.ok(!subs.has(h), h)
+    }
     // itch.io pages are reviewed one by one; the rest wait in pending-review.
     assert.ok(lines('data/pending-review.txt').includes('*.itch.io'))
     assert.ok([...subs].some((s) => s.endsWith('.itch.io') && !s.startsWith('*.')))

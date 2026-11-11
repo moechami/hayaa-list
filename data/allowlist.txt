@@ -720,3 +720,37 @@ pharmacysearch-all.blogspot.com          # pharmacy search
 *.ebenezereny.net                        # church
 *.antiporno.net                          # anti-pornography site
 *.antiporno.org                          # anti-pornography site
+
+# --- False positives under the top 10,000, Tranco PY2VJ review (2026-11-09, the root only) ---
+# Popular sites a source lists whose main content is not sexual.
+fasthosts.co.uk                    # web hosting company
+liveleak.com                       # former video news site, not sexual
+yourtango.com                      # relationships and lifestyle magazine
+jalbum.net                         # photo album software and hosting
+nwsource.com                       # Seattle news and events portal
+miguvideo.com                      # China Mobile's video and sports streaming
+de.vu                              # free short-domain service; sites under it keep their own entries
+radikal.ru                         # general image host
+online.fr                          # free personal hosting; sites under it keep their own entries
+unblog.fr                          # blog platform; blogs under it keep their own entries
+etonline.com                       # Entertainment Tonight, TV entertainment news
+postimage.org                      # general image host
+fanbox.cc                          # pixiv FANBOX, a general creator platform
+fishki.net                         # Russian entertainment portal
+starzmanga.com                     # general manga reader (Arabic)
+lector-mangas.lat                  # general comic and manhwa reader (Spanish)
+
+# --- False positives under popular sites, Tranco PY2VJ review (2026-11-09, that host only) ---
+fotostrana.ucoz.com                      # named after the Fotostrana social network; not verified adult
+expressionlibre.blogs.psychologies.com   # blog on a psychology magazine; name shows nothing adult
+geilejacken.de.tl                        # German for "cool jackets"; name shows nothing adult
+celebrityphotos.sheknows.com             # part of SheKnows, a women's lifestyle site
+celebsalon.sheknows.com                  # part of SheKnows, a women's lifestyle site
+divas.wwe.com                            # WWE wrestlers pages
+redir.webshots.com                       # redirector of the Webshots photo site
+m.usmagazine.com                         # mobile site of Us Weekly, a celebrity magazine
+cdn.images.dailystar.co.uk               # image server of the Daily Star newspaper
+pt.cision.com                            # Cision press release service
+
+# --- Sexual abuse support (with everything under it, 2026-11-09) ---
+*.rainn.org                        # RAINN, the US sexual assault hotline (with everything under it)

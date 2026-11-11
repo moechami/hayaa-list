@@ -163,15 +163,17 @@ list and are not published with it.
 
 - https://tranco-list.eu, pinned by permanent list ID in `src/config.ts`
   (`TRANCO_LIST_ID`, copied into `sources.lock.json` with its SHA-256; at
-  the time of writing `PYK6J`, created 2026-10-29 from the 30 days
-  2026-09-30 to 2026-10-29; providers CrUX, Farsight, Majestic, Cloudflare
-  Radar and Cisco Umbrella; registrable domains only). The top 10,000
-  entries are used.
+  the time of writing `PY2VJ`, a custom list created 2026-11-09 from the 30
+  days 2026-10-10 to 2026-11-08; providers CrUX, Majestic and Cisco
+  Umbrella, combined by the Dowdall rule; registrable domains only). The top
+  10,000 entries are used.
 - Terms: the Tranco site publishes no licence of its own for the list. Its
-  attribution section states the terms of its inputs: Cisco Umbrella
-  (available free of charge), Majestic (CC BY 3.0), Farsight, the Chrome User
-  Experience Report (CC BY-SA 4.0) and Cloudflare Radar (CC BY-NC 4.0), and
-  says Tranco is not affiliated with any of them. Tranco asks users to cite
+  attribution section states the terms of its inputs. The three used here:
+  Cisco Umbrella (available free of charge), Majestic (CC BY 3.0) and the
+  Chrome User Experience Report (CC BY-SA 4.0). Tranco says it is not
+  affiliated with any of them. Cloudflare Radar (CC BY-NC 4.0, no commercial
+  use) is left out on purpose, and Farsight because custom lists do not offer
+  it. Tranco asks users to cite
   its paper: Victor Le Pochat, Tom Van Goethem, Samaneh Tajalizadehkhoob,
   Maciej Korczyński and Wouter Joosen, "Tranco: A Research-Oriented Top
   Sites Ranking Hardened Against Manipulation", NDSS 2019.
@@ -179,9 +181,9 @@ list and are not published with it.
   every listed subdomain of a top-10,000 site, must be reviewed by hand) and
   the choice of the starter list. The ranking is never redistributed: no
   ranks are stored in this repository or in a release.
-- TODO: Cloudflare Radar's data is CC BY-NC 4.0. The maintainer will create a
-  custom Tranco list without Cloudflare Radar; its ID then replaces `PYK6J`
-  in `src/config.ts` (one line), and the next monthly run re-pins it.
+- A new list is a new custom Tranco list without Cloudflare Radar; its ID
+  replaces the one in `src/config.ts` (one line), and the next run re-pins
+  it. Moving to another list surfaces new popular entries for review.
 
 ## MIT licence notices
 
